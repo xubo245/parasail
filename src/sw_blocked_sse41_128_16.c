@@ -63,7 +63,11 @@ static inline void arr_store_col(
 #ifdef PARASAIL_ROWCOL
 #define FNAME parasail_sw_rowcol_blocked_sse41_128_16
 #else
+#ifdef PARASAIL_TRACE
+#define FNAME parasail_sw_trace_blocked_sse41_128_16
+#else
 #define FNAME parasail_sw_blocked_sse41_128_16
+#endif
 #endif
 #endif
 
@@ -96,7 +100,11 @@ parasail_result_t* FNAME(
     const int32_t offset = segLen - 1;
     const int32_t position = s1Len % segWidth;
 #else
+#ifdef PARASAIL_TRACE
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
+#else
     parasail_result_t *result = parasail_result_new();
+#endif
 #endif
 #endif
 

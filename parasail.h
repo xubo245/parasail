@@ -60,6 +60,12 @@ extern "C" {
   #define PARASAIL_LOCAL
 #endif /* PARASAIL_DLL */
 
+/* for traceback */
+#define PARASAIL_ZERO 0
+#define PARASAIL_INS  1
+#define PARASAIL_DEL  2
+#define PARASAIL_DIAG 3
+
 typedef struct parasail_result {
     int saturated;  /* for the 8-bit functions, whether score overflowed and should be discarded */
     int score;      /* alignment score */
@@ -72,6 +78,9 @@ typedef struct parasail_result {
     int * restrict matches_table;   /* DP table of exact match counts */
     int * restrict similar_table;   /* DP table of similar substitution counts */
     int * restrict length_table;    /* DP table of lengths */
+    int * restrict trace_table;     /* DP table of score traceback */
+    int * restrict trace_ins_table; /* DP table of insertions traceback */
+    int * restrict trace_del_table; /* DP table of deletions traceback */
     int * restrict score_row;       /* last row of DP table of scores */
     int * restrict matches_row;     /* last row of DP table of exact match counts */
     int * restrict similar_row;     /* last row of DP table of similar substitution counts */
@@ -231,6 +240,13 @@ parasail_result_t* parasail_nw_rowcol(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
+parasail_result_t* parasail_nw_trace(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
 parasail_result_t* parasail_nw_stats(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
@@ -267,6 +283,13 @@ parasail_result_t* parasail_sg_table(
 
 extern PARASAIL_API
 parasail_result_t* parasail_sg_rowcol(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
         const int open, const int gap,
@@ -315,6 +338,13 @@ parasail_result_t* parasail_sw_rowcol(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
+parasail_result_t* parasail_sw_trace(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
 parasail_result_t* parasail_sw_stats(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
@@ -351,6 +381,13 @@ parasail_result_t* parasail_nw_table_scan(
 
 extern PARASAIL_API
 parasail_result_t* parasail_nw_rowcol_scan(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
         const int open, const int gap,
@@ -399,6 +436,13 @@ parasail_result_t* parasail_sg_rowcol_scan(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
 parasail_result_t* parasail_sg_stats_scan(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
@@ -435,6 +479,13 @@ parasail_result_t* parasail_sw_table_scan(
 
 extern PARASAIL_API
 parasail_result_t* parasail_sw_rowcol_scan(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
         const int open, const int gap,
@@ -1464,6 +1515,342 @@ parasail_result_t* parasail_nw_rowcol_diag_avx2_256_sat(
 
 extern PARASAIL_API
 parasail_result_t* parasail_nw_rowcol_diag_knc_512_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sse2_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sse2_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sse2_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sse2_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sse2_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sse41_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sse41_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sse41_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sse41_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sse41_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_avx2_256_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_avx2_256_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_avx2_256_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_avx2_256_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_avx2_256_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_knc_512_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sse2_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sse2_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sse2_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sse2_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sse2_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sse41_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sse41_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sse41_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sse41_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sse41_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_avx2_256_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_avx2_256_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_avx2_256_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_avx2_256_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_avx2_256_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_knc_512_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sse2_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sse2_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sse2_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sse2_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sse2_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sse41_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sse41_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sse41_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sse41_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sse41_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_avx2_256_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_avx2_256_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_avx2_256_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_avx2_256_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_avx2_256_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_knc_512_32(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
         const int open, const int gap,
@@ -3486,6 +3873,342 @@ parasail_result_t* parasail_sg_rowcol_diag_knc_512_32(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sse2_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sse2_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sse2_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sse2_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sse2_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sse41_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sse41_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sse41_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sse41_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sse41_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_avx2_256_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_avx2_256_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_avx2_256_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_avx2_256_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_avx2_256_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_knc_512_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sse2_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sse2_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sse2_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sse2_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sse2_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sse41_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sse41_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sse41_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sse41_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sse41_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_avx2_256_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_avx2_256_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_avx2_256_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_avx2_256_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_avx2_256_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_knc_512_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sse2_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sse2_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sse2_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sse2_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sse2_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sse41_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sse41_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sse41_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sse41_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sse41_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_avx2_256_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_avx2_256_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_avx2_256_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_avx2_256_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_avx2_256_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_knc_512_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
 parasail_result_t* parasail_sg_stats_scan_sse2_128_64(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
@@ -5502,6 +6225,342 @@ parasail_result_t* parasail_sw_rowcol_diag_knc_512_32(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sse2_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sse2_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sse2_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sse2_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sse2_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sse41_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sse41_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sse41_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sse41_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sse41_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_avx2_256_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_avx2_256_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_avx2_256_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_avx2_256_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_avx2_256_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_knc_512_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sse2_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sse2_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sse2_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sse2_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sse2_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sse41_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sse41_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sse41_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sse41_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sse41_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_avx2_256_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_avx2_256_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_avx2_256_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_avx2_256_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_avx2_256_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_knc_512_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sse2_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sse2_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sse2_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sse2_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sse2_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sse41_128_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sse41_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sse41_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sse41_128_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sse41_128_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_avx2_256_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_avx2_256_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_avx2_256_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_avx2_256_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_avx2_256_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_knc_512_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
 parasail_result_t* parasail_sw_stats_scan_sse2_128_64(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
@@ -7086,6 +8145,198 @@ parasail_result_t* parasail_nw_rowcol_striped_profile_knc_512_32(
         const int open, const int gap);
 
 extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sse2_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sse2_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sse2_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sse2_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sse2_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sse41_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sse41_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sse41_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sse41_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sse41_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_avx2_256_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_avx2_256_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_avx2_256_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_avx2_256_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_avx2_256_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_knc_512_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sse2_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sse2_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sse2_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sse2_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sse2_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sse41_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sse41_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sse41_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sse41_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sse41_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_avx2_256_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_avx2_256_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_avx2_256_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_avx2_256_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_avx2_256_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_knc_512_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
 parasail_result_t* parasail_nw_stats_scan_profile_sse2_128_64(
         const parasail_profile_t * const restrict profile,
         const char * const restrict s2, const int s2Len,
@@ -8233,6 +9484,198 @@ parasail_result_t* parasail_sg_rowcol_striped_profile_avx2_256_sat(
 
 extern PARASAIL_API
 parasail_result_t* parasail_sg_rowcol_striped_profile_knc_512_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sse2_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sse2_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sse2_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sse2_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sse2_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sse41_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sse41_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sse41_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sse41_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sse41_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_avx2_256_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_avx2_256_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_avx2_256_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_avx2_256_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_avx2_256_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_knc_512_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sse2_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sse2_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sse2_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sse2_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sse2_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sse41_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sse41_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sse41_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sse41_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sse41_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_avx2_256_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_avx2_256_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_avx2_256_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_avx2_256_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_avx2_256_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_knc_512_32(
         const parasail_profile_t * const restrict profile,
         const char * const restrict s2, const int s2Len,
         const int open, const int gap);
@@ -9390,6 +10833,198 @@ parasail_result_t* parasail_sw_rowcol_striped_profile_knc_512_32(
         const int open, const int gap);
 
 extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sse2_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sse2_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sse2_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sse2_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sse2_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sse41_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sse41_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sse41_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sse41_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sse41_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_avx2_256_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_avx2_256_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_avx2_256_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_avx2_256_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_avx2_256_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_knc_512_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sse2_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sse2_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sse2_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sse2_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sse2_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sse41_128_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sse41_128_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sse41_128_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sse41_128_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sse41_128_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_avx2_256_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_avx2_256_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_avx2_256_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_avx2_256_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_avx2_256_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_knc_512_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
 parasail_result_t* parasail_sw_stats_scan_profile_sse2_128_64(
         const parasail_profile_t * const restrict profile,
         const char * const restrict s2, const int s2Len,
@@ -10008,6 +11643,20 @@ parasail_result_t* parasail_sw_rowcol_blocked_sse41_128_16(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_blocked_sse41_128_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_blocked_sse41_128_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
 parasail_result_t* parasail_nw_scan_64(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
@@ -10317,6 +11966,111 @@ parasail_result_t* parasail_nw_rowcol_diag_8(
 
 extern PARASAIL_API
 parasail_result_t* parasail_nw_rowcol_diag_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sat(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
         const int open, const int gap,
@@ -10953,6 +12707,111 @@ parasail_result_t* parasail_sg_rowcol_diag_sat(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
 parasail_result_t* parasail_sg_stats_scan_64(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
@@ -11583,6 +13442,111 @@ parasail_result_t* parasail_sw_rowcol_diag_sat(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_64(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_32(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_16(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_8(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
 parasail_result_t* parasail_sw_stats_scan_64(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
@@ -12078,6 +14042,66 @@ parasail_result_t* parasail_nw_rowcol_striped_profile_sat(
         const int open, const int gap);
 
 extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_profile_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_profile_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
 parasail_result_t* parasail_nw_stats_scan_profile_64(
         const parasail_profile_t * const restrict profile,
         const char * const restrict s2, const int s2Len,
@@ -12438,6 +14462,66 @@ parasail_result_t* parasail_sg_rowcol_striped_profile_sat(
         const int open, const int gap);
 
 extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_profile_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_profile_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
 parasail_result_t* parasail_sg_stats_scan_profile_64(
         const parasail_profile_t * const restrict profile,
         const char * const restrict s2, const int s2Len,
@@ -12793,6 +14877,66 @@ parasail_result_t* parasail_sw_rowcol_striped_profile_8(
 
 extern PARASAIL_API
 parasail_result_t* parasail_sw_rowcol_striped_profile_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_profile_sat(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_64(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_32(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_16(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_8(
+        const parasail_profile_t * const restrict profile,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_profile_sat(
         const parasail_profile_t * const restrict profile,
         const char * const restrict s2, const int s2Len,
         const int open, const int gap);
@@ -13201,6 +15345,27 @@ parasail_result_t* parasail_nw_rowcol_diag_sat(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_scan_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_striped_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_nw_trace_diag_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
 parasail_result_t* parasail_nw_stats_scan_sat(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
@@ -13327,6 +15492,27 @@ parasail_result_t* parasail_sg_rowcol_diag_sat(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_scan_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_striped_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sg_trace_diag_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
 parasail_result_t* parasail_sg_stats_scan_sat(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
@@ -13447,6 +15633,27 @@ parasail_result_t* parasail_sw_rowcol_striped_sat(
 
 extern PARASAIL_API
 parasail_result_t* parasail_sw_rowcol_diag_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_scan_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_striped_sat(
+        const char * const restrict s1, const int s1Len,
+        const char * const restrict s2, const int s2Len,
+        const int open, const int gap,
+        const parasail_matrix_t* matrix);
+
+extern PARASAIL_API
+parasail_result_t* parasail_sw_trace_diag_sat(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
         const int open, const int gap,

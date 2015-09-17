@@ -138,6 +138,9 @@ parasail_result_t* parasail_result_new()
     result->matches_table = NULL;
     result->similar_table = NULL;
     result->length_table = NULL;
+    result->trace_table = NULL;
+    result->trace_ins_table = NULL;
+    result->trace_del_table = NULL;
     result->score_row = NULL;
     result->matches_row = NULL;
     result->similar_row = NULL;
@@ -212,6 +215,28 @@ parasail_result_t* parasail_result_new_table3(const int a, const int b)
     return result;
 }
 
+parasail_result_t* parasail_result_new_trace(const int a, const int b)
+{
+    /* declare all variables */
+    parasail_result_t *result = NULL;
+
+    /* validate inputs */
+    assert(a > 0);
+    assert(b > 0);
+
+    /* allocate struct to hold memory */
+    result = parasail_result_new();
+
+    result->trace_table = (int *)malloc(sizeof(int)*a*b);
+    assert(result->trace_table);
+    result->trace_ins_table = (int *)malloc(sizeof(int)*a*b);
+    assert(result->trace_ins_table);
+    result->trace_del_table = (int *)malloc(sizeof(int)*a*b);
+    assert(result->trace_del_table);
+
+    return result;
+}
+
 parasail_result_t* parasail_result_new_rowcol3(const int a, const int b)
 {
     /* declare all variables */
@@ -250,6 +275,9 @@ void parasail_result_free(parasail_result_t *result)
     if (NULL != result->matches_table) free(result->matches_table);
     if (NULL != result->similar_table) free(result->similar_table);
     if (NULL != result->length_table) free(result->length_table);
+    if (NULL != result->trace_table) free(result->trace_table);
+    if (NULL != result->trace_ins_table) free(result->trace_ins_table);
+    if (NULL != result->trace_del_table) free(result->trace_del_table);
     if (NULL != result->score_row) free(result->score_row);
     if (NULL != result->matches_row) free(result->matches_row);
     if (NULL != result->similar_row) free(result->similar_row);

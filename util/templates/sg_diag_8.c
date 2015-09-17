@@ -51,7 +51,11 @@ static inline void arr_store_rowcol(
 #ifdef PARASAIL_ROWCOL
 #define FNAME %(NAME_ROWCOL)s
 #else
+#ifdef PARASAIL_TRACE
+#define FNAME %(NAME_TRACE)s
+#else
 #define FNAME %(NAME)s
+#endif
 #endif
 #endif
 
@@ -78,7 +82,11 @@ parasail_result_t* FNAME(
 #ifdef PARASAIL_ROWCOL
     parasail_result_t *result = parasail_result_new_rowcol1(s1Len, s2Len);
 #else
+#ifdef PARASAIL_TRACE
+    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len);
+#else
     parasail_result_t *result = parasail_result_new();
+#endif
 #endif
 #endif
     %(INDEX)s i = 0;

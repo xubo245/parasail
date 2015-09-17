@@ -122,7 +122,11 @@ static inline void arr_store_rowcol(
 #ifdef PARASAIL_ROWCOL
 #define FNAME parasail_sg_rowcol_diag_avx2_256_64
 #else
+#ifdef PARASAIL_TRACE
+#define FNAME parasail_sg_trace_diag_avx2_256_64
+#else
 #define FNAME parasail_sg_diag_avx2_256_64
+#endif
 #endif
 #endif
 
@@ -149,7 +153,11 @@ parasail_result_t* FNAME(
 #ifdef PARASAIL_ROWCOL
     parasail_result_t *result = parasail_result_new_rowcol1(s1Len, s2Len);
 #else
+#ifdef PARASAIL_TRACE
+    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len);
+#else
     parasail_result_t *result = parasail_result_new();
+#endif
 #endif
 #endif
     int32_t i = 0;

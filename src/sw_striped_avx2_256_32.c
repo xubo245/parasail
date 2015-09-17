@@ -85,8 +85,13 @@ static inline void arr_store_col(
 #define FNAME parasail_sw_rowcol_striped_avx2_256_32
 #define PNAME parasail_sw_rowcol_striped_profile_avx2_256_32
 #else
+#ifdef PARASAIL_TRACE
+#define FNAME parasail_sw_trace_striped_avx2_256_32
+#define PNAME parasail_sw_trace_striped_profile_avx2_256_32
+#else
 #define FNAME parasail_sw_striped_avx2_256_32
 #define PNAME parasail_sw_striped_profile_avx2_256_32
+#endif
 #endif
 #endif
 
@@ -137,7 +142,11 @@ parasail_result_t* PNAME(
     const int32_t offset = (s1Len - 1) % segLen;
     const int32_t position = (segWidth - 1) - (s1Len - 1) / segLen;
 #else
+#ifdef PARASAIL_TRACE
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
+#else
     parasail_result_t *result = parasail_result_new();
+#endif
 #endif
 #endif
 

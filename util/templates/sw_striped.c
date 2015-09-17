@@ -52,8 +52,13 @@ static inline void arr_store_col(
 #define FNAME %(NAME_ROWCOL)s
 #define PNAME %(PNAME_ROWCOL)s
 #else
+#ifdef PARASAIL_TRACE
+#define FNAME %(NAME_TRACE)s
+#define PNAME %(PNAME_TRACE)s
+#else
 #define FNAME %(NAME)s
 #define PNAME %(PNAME)s
+#endif
 #endif
 #endif
 
@@ -104,7 +109,11 @@ parasail_result_t* PNAME(
     const %(INDEX)s offset = (s1Len - 1) %% segLen;
     const %(INDEX)s position = (segWidth - 1) - (s1Len - 1) / segLen;
 #else
+#ifdef PARASAIL_TRACE
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
+#else
     parasail_result_t *result = parasail_result_new();
+#endif
 #endif
 #endif
 
