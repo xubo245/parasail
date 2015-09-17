@@ -722,6 +722,7 @@ check_PROGRAMS += tests/test_sw_dispatch
 check_PROGRAMS += tests/test_verify
 check_PROGRAMS += tests/test_verify_tables
 check_PROGRAMS += tests/test_verify_rowcols
+check_PROGRAMS += tests/test_verify_traces
 if HAVE_SSE2
 check_PROGRAMS += tests/test_ssw
 endif
@@ -797,6 +798,10 @@ tests_test_verify_tables_LDFLAGS = $(AM_LDFLAGS) $(OPENMP_CFLAGS)
 tests_test_verify_rowcols_SOURCES = tests/test_verify_rowcols.c
 tests_test_verify_rowcols_CFLAGS  = $(AM_CFLAGS) $(OPENMP_CFLAGS)
 tests_test_verify_rowcols_LDFLAGS = $(AM_LDFLAGS) $(OPENMP_CFLAGS)
+
+tests_test_verify_traces_SOURCES = tests/test_verify_traces.c
+tests_test_verify_traces_CFLAGS  = $(AM_CFLAGS) $(OPENMP_CFLAGS)
+tests_test_verify_traces_LDFLAGS = $(AM_LDFLAGS) $(OPENMP_CFLAGS)
 
 EXTRA_DIST += DISCLAIMER
 EXTRA_DIST += README.md

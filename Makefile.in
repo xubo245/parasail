@@ -87,7 +87,8 @@ check_PROGRAMS = tests/test_align$(EXEEXT) tests/test_gcups$(EXEEXT) \
 	tests/test_query$(EXEEXT) tests/test_scatter$(EXEEXT) \
 	tests/test_sw_dispatch$(EXEEXT) tests/test_verify$(EXEEXT) \
 	tests/test_verify_tables$(EXEEXT) \
-	tests/test_verify_rowcols$(EXEEXT) $(am__EXEEXT_2)
+	tests/test_verify_rowcols$(EXEEXT) \
+	tests/test_verify_traces$(EXEEXT) $(am__EXEEXT_2)
 @HAVE_SSE_TRUE@am__append_1 = libparasail_sse_memory.la
 @HAVE_SSE2_TRUE@am__append_2 = libparasail_sse2.la \
 @HAVE_SSE2_TRUE@	libparasail_sse2_table.la \
@@ -1427,6 +1428,17 @@ tests_test_verify_tables_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(tests_test_verify_tables_CFLAGS) $(CFLAGS) \
 	$(tests_test_verify_tables_LDFLAGS) $(LDFLAGS) -o $@
+am_tests_test_verify_traces_OBJECTS =  \
+	tests/tests_test_verify_traces-test_verify_traces.$(OBJEXT)
+tests_test_verify_traces_OBJECTS =  \
+	$(am_tests_test_verify_traces_OBJECTS)
+tests_test_verify_traces_LDADD = $(LDADD)
+tests_test_verify_traces_DEPENDENCIES = libparasail.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+tests_test_verify_traces_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(tests_test_verify_traces_CFLAGS) $(CFLAGS) \
+	$(tests_test_verify_traces_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -1511,7 +1523,8 @@ SOURCES = $(libparasail_la_SOURCES) $(libparasail_avx2_la_SOURCES) \
 	$(tests_test_scatter_SOURCES) $(tests_test_ssw_SOURCES) \
 	$(tests_test_sw_dispatch_SOURCES) $(tests_test_verify_SOURCES) \
 	$(tests_test_verify_rowcols_SOURCES) \
-	$(tests_test_verify_tables_SOURCES)
+	$(tests_test_verify_tables_SOURCES) \
+	$(tests_test_verify_traces_SOURCES)
 DIST_SOURCES = $(libparasail_la_SOURCES) \
 	$(libparasail_avx2_la_SOURCES) \
 	$(libparasail_avx2_memory_la_SOURCES) \
@@ -1546,7 +1559,8 @@ DIST_SOURCES = $(libparasail_la_SOURCES) \
 	$(tests_test_scatter_SOURCES) $(tests_test_ssw_SOURCES) \
 	$(tests_test_sw_dispatch_SOURCES) $(tests_test_verify_SOURCES) \
 	$(tests_test_verify_rowcols_SOURCES) \
-	$(tests_test_verify_tables_SOURCES)
+	$(tests_test_verify_tables_SOURCES) \
+	$(tests_test_verify_traces_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -2196,6 +2210,9 @@ tests_test_verify_tables_LDFLAGS = $(AM_LDFLAGS) $(OPENMP_CFLAGS)
 tests_test_verify_rowcols_SOURCES = tests/test_verify_rowcols.c
 tests_test_verify_rowcols_CFLAGS = $(AM_CFLAGS) $(OPENMP_CFLAGS)
 tests_test_verify_rowcols_LDFLAGS = $(AM_LDFLAGS) $(OPENMP_CFLAGS)
+tests_test_verify_traces_SOURCES = tests/test_verify_traces.c
+tests_test_verify_traces_CFLAGS = $(AM_CFLAGS) $(OPENMP_CFLAGS)
+tests_test_verify_traces_LDFLAGS = $(AM_LDFLAGS) $(OPENMP_CFLAGS)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -4319,6 +4336,12 @@ tests/tests_test_verify_tables-test_verify_tables.$(OBJEXT):  \
 tests/test_verify_tables$(EXEEXT): $(tests_test_verify_tables_OBJECTS) $(tests_test_verify_tables_DEPENDENCIES) $(EXTRA_tests_test_verify_tables_DEPENDENCIES) tests/$(am__dirstamp)
 	@rm -f tests/test_verify_tables$(EXEEXT)
 	$(AM_V_CCLD)$(tests_test_verify_tables_LINK) $(tests_test_verify_tables_OBJECTS) $(tests_test_verify_tables_LDADD) $(LIBS)
+tests/tests_test_verify_traces-test_verify_traces.$(OBJEXT):  \
+	tests/$(am__dirstamp) tests/$(DEPDIR)/$(am__dirstamp)
+
+tests/test_verify_traces$(EXEEXT): $(tests_test_verify_traces_OBJECTS) $(tests_test_verify_traces_DEPENDENCIES) $(EXTRA_tests_test_verify_traces_DEPENDENCIES) tests/$(am__dirstamp)
+	@rm -f tests/test_verify_traces$(EXEEXT)
+	$(AM_V_CCLD)$(tests_test_verify_traces_LINK) $(tests_test_verify_traces_OBJECTS) $(tests_test_verify_traces_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -5233,6 +5256,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/tests_test_verify-test_verify.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/tests_test_verify_rowcols-test_verify_rowcols.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/tests_test_verify_tables-test_verify_tables.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/tests_test_verify_traces-test_verify_traces.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -11452,6 +11476,20 @@ tests/tests_test_verify_tables-test_verify_tables.obj: tests/test_verify_tables.
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tests/test_verify_tables.c' object='tests/tests_test_verify_tables-test_verify_tables.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_test_verify_tables_CFLAGS) $(CFLAGS) -c -o tests/tests_test_verify_tables-test_verify_tables.obj `if test -f 'tests/test_verify_tables.c'; then $(CYGPATH_W) 'tests/test_verify_tables.c'; else $(CYGPATH_W) '$(srcdir)/tests/test_verify_tables.c'; fi`
+
+tests/tests_test_verify_traces-test_verify_traces.o: tests/test_verify_traces.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_test_verify_traces_CFLAGS) $(CFLAGS) -MT tests/tests_test_verify_traces-test_verify_traces.o -MD -MP -MF tests/$(DEPDIR)/tests_test_verify_traces-test_verify_traces.Tpo -c -o tests/tests_test_verify_traces-test_verify_traces.o `test -f 'tests/test_verify_traces.c' || echo '$(srcdir)/'`tests/test_verify_traces.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) tests/$(DEPDIR)/tests_test_verify_traces-test_verify_traces.Tpo tests/$(DEPDIR)/tests_test_verify_traces-test_verify_traces.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tests/test_verify_traces.c' object='tests/tests_test_verify_traces-test_verify_traces.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_test_verify_traces_CFLAGS) $(CFLAGS) -c -o tests/tests_test_verify_traces-test_verify_traces.o `test -f 'tests/test_verify_traces.c' || echo '$(srcdir)/'`tests/test_verify_traces.c
+
+tests/tests_test_verify_traces-test_verify_traces.obj: tests/test_verify_traces.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_test_verify_traces_CFLAGS) $(CFLAGS) -MT tests/tests_test_verify_traces-test_verify_traces.obj -MD -MP -MF tests/$(DEPDIR)/tests_test_verify_traces-test_verify_traces.Tpo -c -o tests/tests_test_verify_traces-test_verify_traces.obj `if test -f 'tests/test_verify_traces.c'; then $(CYGPATH_W) 'tests/test_verify_traces.c'; else $(CYGPATH_W) '$(srcdir)/tests/test_verify_traces.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) tests/$(DEPDIR)/tests_test_verify_traces-test_verify_traces.Tpo tests/$(DEPDIR)/tests_test_verify_traces-test_verify_traces.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tests/test_verify_traces.c' object='tests/tests_test_verify_traces-test_verify_traces.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_test_verify_traces_CFLAGS) $(CFLAGS) -c -o tests/tests_test_verify_traces-test_verify_traces.obj `if test -f 'tests/test_verify_traces.c'; then $(CYGPATH_W) 'tests/test_verify_traces.c'; else $(CYGPATH_W) '$(srcdir)/tests/test_verify_traces.c'; fi`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\

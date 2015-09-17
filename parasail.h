@@ -139,6 +139,7 @@ typedef struct parasail_function_info {
     int lanes;
     char is_table;
     char is_rowcol;
+    char is_trace;
     char is_stats;
     char is_ref;
 } parasail_function_info_t;
@@ -164,6 +165,7 @@ typedef struct parasail_pfunction_info {
     int lanes;
     char is_table;
     char is_rowcol;
+    char is_trace;
     char is_stats;
     char is_ref;
 } parasail_pfunction_info_t;

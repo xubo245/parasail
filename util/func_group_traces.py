@@ -7,8 +7,8 @@ print """/**
  *
  * Copyright (c) 2015 Battelle Memorial Institute.
  */
-#ifndef _PARASAIL_FUNCTION_GROUP_TABLE_H_
-#define _PARASAIL_FUNCTION_GROUP_TABLE_H_
+#ifndef _PARASAIL_FUNCTION_GROUP_TRACE_H_
+#define _PARASAIL_FUNCTION_GROUP_TRACE_H_
 
 #include "parasail.h"
 
@@ -20,7 +20,7 @@ typedef struct parasail_function_group {
 
 
 def print_fmt(*args):
-    fmt = '{%-36s %-38s %5s %10s %-8s %6s %5s %3s %1s 0, 0, %1s %1s},'
+    fmt = '{%-36s %-38s %5s %10s %-8s %6s %5s %3s %1s 0, 1, %1s %1s},'
     new_args = [arg for arg in args]
     new_args[0] = '%s,'   % new_args[0]
     new_args[1] = '"%s",' % new_args[1]
@@ -36,7 +36,7 @@ def print_fmt(*args):
     print fmt % tuple(new_args)
 
 def print_null():
-    fmt = '{%s, "%s", "%s", "%s", "%s", "%s", "%s", %d, %d, 0, 0, %d, %d},'
+    fmt = '{%s, "%s", "%s", "%s", "%s", "%s", "%s", %d, %d, 0, 1, %d, %d},'
     print fmt[:-1] % ("NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", 0, 0, 0, 0)
 
 isa_to_bits = {
@@ -46,13 +46,12 @@ isa_to_bits = {
     "knc"   : 512,
 }
 
-for table in ["_table"]:
-    for stats in ["", "_stats"]:
+for table in ["_trace"]:
+    for stats in [""]:
         for alg in ["nw", "sg", "sw"]:
             is_table = 0
-            if table:
-                is_table = 1
             is_stats = 0
+            is_trace = 1
             if stats:
                 is_stats = 1
             pre = "parasail_"+alg+stats+table
@@ -106,5 +105,5 @@ for table in ["_table"]:
 
 
 print """
-#endif /* _PARASAIL_FUNCTION_GROUP_TABLE_H_ */
+#endif /* _PARASAIL_FUNCTION_GROUP_TRACE_H_ */
 """
