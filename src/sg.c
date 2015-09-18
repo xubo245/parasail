@@ -84,14 +84,37 @@ parasail_result_t* ENAME(
         int ins_cr = NEG_INF_32;
         tbl_pr[0] = Wscore;
         for (j=1; j<=s2Len; ++j) {
+            int del_tbl;
+            int del_del;
+            int ins_tbl;
+            int ins_ins;
+            int tbl_tbl;
             int NWscore = Nscore;
             Nscore = tbl_pr[j];
-            del_pr[j] = MAX(Nscore - open, del_pr[j] - gap);
-            ins_cr    = MAX(Wscore - open, ins_cr    - gap);
-            tbl_pr[j] = NWscore + matrow[s2[j-1]];
-            Wscore = tbl_pr[j] = MAX(tbl_pr[j],MAX(ins_cr,del_pr[j]));
+            del_tbl = Nscore - open;
+            del_del = del_pr[j] - gap;
+            ins_tbl = Wscore - open;
+            ins_ins = ins_cr    - gap;
+            tbl_tbl = NWscore + matrow[s2[j-1]];
+            del_pr[j] = MAX(del_tbl, del_del);
+            ins_cr    = MAX(ins_tbl, ins_ins);
+            Wscore = MAX(tbl_tbl, del_pr[j]);
+            Wscore = MAX(Wscore, ins_cr);
+            tbl_pr[j] = Wscore;
 #ifdef PARASAIL_TABLE
             result->score_table[(i-1)*s2Len + (j-1)] = Wscore;
+#endif
+#ifdef PARASAIL_TRACE
+            result->trace_del_table[(i-1)*s2Len + (j-1)] = 
+                (del_tbl > del_del) ? PARASAIL_DIAG
+                                    : PARASAIL_DEL;
+            result->trace_ins_table[(i-1)*s2Len + (j-1)] = 
+                (ins_tbl > ins_ins) ? PARASAIL_DIAG
+                                    : PARASAIL_INS;
+            result->trace_table[(i-1)*s2Len + (j-1)] = 
+                (Wscore == tbl_tbl) ? PARASAIL_DIAG
+                    : (Wscore == del_pr[j]) ? PARASAIL_DEL
+                    : PARASAIL_INS;
 #endif
         }
 #ifdef PARASAIL_ROWCOL
@@ -112,12 +135,23 @@ parasail_result_t* ENAME(
         int ins_cr = NEG_INF_32;
         tbl_pr[0] = Wscore;
         for (j=1; j<=s2Len; ++j) {
+            int del_tbl;
+            int del_del;
+            int ins_tbl;
+            int ins_ins;
+            int tbl_tbl;
             int NWscore = Nscore;
             Nscore = tbl_pr[j];
-            del_pr[j] = MAX(Nscore - open, del_pr[j] - gap);
-            ins_cr    = MAX(Wscore - open, ins_cr    - gap);
-            tbl_pr[j] = NWscore + matrow[s2[j-1]];
-            Wscore = tbl_pr[j] = MAX(tbl_pr[j],MAX(ins_cr,del_pr[j]));
+            del_tbl = Nscore - open;
+            del_del = del_pr[j] - gap;
+            ins_tbl = Wscore - open;
+            ins_ins = ins_cr    - gap;
+            tbl_tbl = NWscore + matrow[s2[j-1]];
+            del_pr[j] = MAX(del_tbl, del_del);
+            ins_cr    = MAX(ins_tbl, ins_ins);
+            Wscore = MAX(tbl_tbl, del_pr[j]);
+            Wscore = MAX(Wscore, ins_cr);
+            tbl_pr[j] = Wscore;
             if (Wscore > score) {
                 score = Wscore;
                 end_query = s1Len-1;
@@ -129,6 +163,18 @@ parasail_result_t* ENAME(
             }
 #ifdef PARASAIL_TABLE
             result->score_table[(i-1)*s2Len + (j-1)] = Wscore;
+#endif
+#ifdef PARASAIL_TRACE
+            result->trace_del_table[(i-1)*s2Len + (j-1)] = 
+                (del_tbl > del_del) ? PARASAIL_DIAG
+                                    : PARASAIL_DEL;
+            result->trace_ins_table[(i-1)*s2Len + (j-1)] = 
+                (ins_tbl > ins_ins) ? PARASAIL_DIAG
+                                    : PARASAIL_INS;
+            result->trace_table[(i-1)*s2Len + (j-1)] = 
+                (Wscore == tbl_tbl) ? PARASAIL_DIAG
+                    : (Wscore == del_pr[j]) ? PARASAIL_DEL
+                    : PARASAIL_INS;
 #endif
 #ifdef PARASAIL_ROWCOL
             result->score_row[j-1] = tbl_pr[j];
