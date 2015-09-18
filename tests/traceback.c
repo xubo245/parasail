@@ -27,7 +27,7 @@ static inline char match_char(const char a, const char b, const parasail_matrix_
     }
     else {
         int sub = weight(a, b, matrix);
-        if (sub >= 0) {
+        if (sub > 0) {
             return ':';
         }
         else {
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
                 if (result->trace_table[loc] == PARASAIL_DIAG) {
                     *(qc++) = seqA[i];
                     *(dc++) = seqB[j];
-                    *(ac++) = match_char(seqA[i], seqB[i], matrix);
+                    *(ac++) = match_char(seqA[i], seqB[j], matrix);
                     --i;
                     --j;
                 }
@@ -313,9 +313,9 @@ int main(int argc, char **argv)
                     where = PARASAIL_DEL;
                 }
                 else if (result->trace_table[loc] == PARASAIL_ZERO) {
-                    *(qc++) = seqA[i];
-                    *(dc++) = seqB[j];
-                    *(ac++) = match_char(seqA[i], seqB[i], matrix);
+                    //*(qc++) = seqA[i];
+                    //*(dc++) = seqB[j];
+                    //*(ac++) = match_char(seqA[i], seqB[j], matrix);
                     break;
                 }
                 else {
@@ -323,47 +323,39 @@ int main(int argc, char **argv)
                 }
             }
             else if (PARASAIL_INS == where) {
+                *(qc++) = '-';
+                *(dc++) = seqB[j];
+                *(ac++) = ' ';
+                --j;
                 if (result->trace_ins_table[loc] == PARASAIL_DIAG) {
                     where = PARASAIL_DIAG;
-                    *(qc++) = seqA[i];
-                    *(dc++) = seqB[j];
-                    *(ac++) = match_char(seqA[i], seqB[i], matrix);
-                    //--i;
-                    --j;
                 }
                 else if (result->trace_ins_table[loc] == PARASAIL_INS) {
-                    *(qc++) = '-';
-                    *(dc++) = seqB[j];
-                    *(ac++) = ' ';
-                    --j;
+                    where = PARASAIL_INS;
                 }
                 else {
                     assert(0);
                 }
             }
             else if (PARASAIL_DEL == where) {
-                if (result->trace_ins_table[loc] == PARASAIL_DIAG) {
+                *(qc++) = seqA[i];
+                *(dc++) = '-';
+                *(ac++) = ' ';
+                --i;
+                if (result->trace_del_table[loc] == PARASAIL_DIAG) {
                     where = PARASAIL_DIAG;
-                    *(qc++) = seqA[i];
-                    *(dc++) = seqB[j];
-                    *(ac++) = match_char(seqA[i], seqB[i], matrix);
-                    --i;
-                    //--j;
                 }
-                else if (result->trace_ins_table[loc] == PARASAIL_DEL) {
-                    *(qc++) = seqA[i];
-                    *(dc++) = '-';
-                    *(ac++) = ' ';
-                    --i;
+                else if (result->trace_del_table[loc] == PARASAIL_DEL) {
+                    where = PARASAIL_DEL;
                 }
                 else {
                     assert(0);
                 }
             }
             else if (PARASAIL_ZERO == where) {
-                *(qc++) = seqA[i];
-                *(dc++) = seqB[j];
-                *(ac++) = match_char(seqA[i], seqB[i], matrix);
+                //*(qc++) = seqA[i];
+                //*(dc++) = seqB[j];
+                //*(ac++) = match_char(seqA[i], seqB[j], matrix);
                 break;
             }
             else {
@@ -375,14 +367,15 @@ int main(int argc, char **argv)
         *(ac++) = '\0';
 
         if (1) {
+            printf("Length: %zu\n", strlen(a));
             char *tmp = NULL;
             tmp = parasail_reverse(q, strlen(q));
             printf("%s\n", tmp);
             free(tmp);
-            tmp = parasail_reverse(a, strlen(q));
+            tmp = parasail_reverse(a, strlen(a));
             printf("%s\n", tmp);
             free(tmp);
-            tmp = parasail_reverse(d, strlen(q));
+            tmp = parasail_reverse(d, strlen(d));
             printf("%s\n", tmp);
             free(tmp);
         }
