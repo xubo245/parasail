@@ -239,6 +239,7 @@ int main(int argc, char **argv)
     int do_nonstats = 1;
     int do_table = 1;
     int do_rowcol = 1;
+    int do_trace = 1;
     int use_rdtsc = 0;
 
     while ((c = getopt(argc, argv, "a:b:f:m:n:o:e:rRTNSs")) != -1) {
@@ -295,6 +296,9 @@ int main(int argc, char **argv)
                 use_rdtsc = 1;
             case 'R':
                 do_rowcol = 0;
+                break;
+            case 'B':
+                do_trace = 0;
                 break;
             case 'T':
                 do_table = 0;
@@ -398,7 +402,7 @@ int main(int argc, char **argv)
     f = functions[index++];
     while (f.pointer) {
         char name[16] = {'\0'};
-        int new_limit = f.is_table ? 1 : limit;
+        int new_limit = (f.is_table || f.is_trace) ? 1 : limit;
         int saturated = 0;
 #if 0
         if (f.is_table && HAVE_KNC) {
@@ -432,6 +436,12 @@ int main(int argc, char **argv)
         }
         else if (f.is_rowcol) {
             if (!do_rowcol) {
+                f = functions[index++];
+                continue;
+            }
+        }
+        else if (f.is_trace) {
+            if (!do_trace) {
                 f = functions[index++];
                 continue;
             }
@@ -570,11 +580,57 @@ int main(int argc, char **argv)
             }
             parasail_result_free(result);
         }
+        else if (f.is_trace) {
+            char suffix[256] = {0};
+            if (strlen(f.type)) {
+                strcat(suffix, "_");
+                strcat(suffix, f.type);
+            }
+            if (strlen(f.isa)) {
+                strcat(suffix, "_");
+                strcat(suffix, f.isa);
+            }
+            if (strlen(f.bits)) {
+                strcat(suffix, "_");
+                strcat(suffix, f.bits);
+            }
+            if (strlen(f.width)) {
+                strcat(suffix, "_");
+                strcat(suffix, f.width);
+            }
+            strcat(suffix, ".txt");
+            result = f.pointer(seqA, lena, seqB, lenb, open, extend, matrix);
+            {
+                char filename[256] = {'\0'};
+                strcpy(filename, f.alg);
+                strcat(filename, "_trace_tbl");
+                strcat(filename, suffix);
+                print_array(filename, result->trace_table, seqA, lena, seqB, lenb);
+            }
+            {
+                char filename[256] = {'\0'};
+                strcpy(filename, f.alg);
+                strcat(filename, "_trace_ins");
+                strcat(filename, suffix);
+                print_array(filename, result->trace_ins_table, seqA, lena, seqB, lenb);
+            }
+            {
+                char filename[256] = {'\0'};
+                strcpy(filename, f.alg);
+                strcat(filename, "_trace_del");
+                strcat(filename, suffix);
+                print_array(filename, result->trace_del_table, seqA, lena, seqB, lenb);
+            }
+            parasail_result_free(result);
+        }
         if (f.is_table) {
             strcat(name, "_table");
         }
         else if (f.is_rowcol) {
             strcat(name, "_rowcol");
+        }
+        else if (f.is_trace) {
+            strcat(name, "_trace");
         }
         if (use_rdtsc) {
             printf(

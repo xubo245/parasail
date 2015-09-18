@@ -114,6 +114,19 @@ parasail_result_t* ENAME(
 #ifdef PARASAIL_TABLE
             result->score_table[(i-1)*s2Len + (j-1)] = Wscore;
 #endif
+#ifdef PARASAIL_TRACE
+            result->trace_del_table[(i-1)*s2Len + (j-1)] = 
+                (del_tbl > del_del) ? PARASAIL_DIAG
+                                    : PARASAIL_DEL;
+            result->trace_ins_table[(i-1)*s2Len + (j-1)] = 
+                (ins_tbl > ins_ins) ? PARASAIL_DIAG
+                                    : PARASAIL_INS;
+            result->trace_table[(i-1)*s2Len + (j-1)] = 
+                (Wscore == 0) ? PARASAIL_ZERO
+                    : (Wscore == tbl_tbl) ? PARASAIL_DIAG
+                    : (Wscore == del_pr[j]) ? PARASAIL_DEL
+                    : PARASAIL_INS;
+#endif
         }
 #ifdef PARASAIL_ROWCOL
         result->score_col[i-1] = Wscore;

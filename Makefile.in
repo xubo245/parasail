@@ -82,11 +82,11 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = apps/parasail_aligner$(EXEEXT) \
 	apps/parasail_stats$(EXEEXT) $(am__EXEEXT_1)
-check_PROGRAMS = tests/test_align$(EXEEXT) tests/test_gcups$(EXEEXT) \
-	tests/test_isa$(EXEEXT) tests/test_openmp$(EXEEXT) \
-	tests/test_query$(EXEEXT) tests/test_scatter$(EXEEXT) \
-	tests/test_sw_dispatch$(EXEEXT) tests/test_verify$(EXEEXT) \
-	tests/test_verify_tables$(EXEEXT) \
+check_PROGRAMS = tests/traceback$(EXEEXT) tests/test_align$(EXEEXT) \
+	tests/test_gcups$(EXEEXT) tests/test_isa$(EXEEXT) \
+	tests/test_openmp$(EXEEXT) tests/test_query$(EXEEXT) \
+	tests/test_scatter$(EXEEXT) tests/test_sw_dispatch$(EXEEXT) \
+	tests/test_verify$(EXEEXT) tests/test_verify_tables$(EXEEXT) \
 	tests/test_verify_rowcols$(EXEEXT) \
 	tests/test_verify_traces$(EXEEXT) $(am__EXEEXT_2)
 @HAVE_SSE_TRUE@am__append_1 = libparasail_sse_memory.la
@@ -1439,6 +1439,11 @@ tests_test_verify_traces_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(tests_test_verify_traces_CFLAGS) $(CFLAGS) \
 	$(tests_test_verify_traces_LDFLAGS) $(LDFLAGS) -o $@
+am_tests_traceback_OBJECTS = tests/traceback.$(OBJEXT)
+tests_traceback_OBJECTS = $(am_tests_traceback_OBJECTS)
+tests_traceback_LDADD = $(LDADD)
+tests_traceback_DEPENDENCIES = libparasail.la $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -1524,7 +1529,7 @@ SOURCES = $(libparasail_la_SOURCES) $(libparasail_avx2_la_SOURCES) \
 	$(tests_test_sw_dispatch_SOURCES) $(tests_test_verify_SOURCES) \
 	$(tests_test_verify_rowcols_SOURCES) \
 	$(tests_test_verify_tables_SOURCES) \
-	$(tests_test_verify_traces_SOURCES)
+	$(tests_test_verify_traces_SOURCES) $(tests_traceback_SOURCES)
 DIST_SOURCES = $(libparasail_la_SOURCES) \
 	$(libparasail_avx2_la_SOURCES) \
 	$(libparasail_avx2_memory_la_SOURCES) \
@@ -1560,7 +1565,7 @@ DIST_SOURCES = $(libparasail_la_SOURCES) \
 	$(tests_test_sw_dispatch_SOURCES) $(tests_test_verify_SOURCES) \
 	$(tests_test_verify_rowcols_SOURCES) \
 	$(tests_test_verify_tables_SOURCES) \
-	$(tests_test_verify_traces_SOURCES)
+	$(tests_test_verify_traces_SOURCES) $(tests_traceback_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -2182,6 +2187,7 @@ apps_parasail_aligner_cilk_LDFLAGS = $(AM_LDFLAGS) $(CILK_CXXFLAGS)
 apps_parasail_aligner_cilk_LDADD = $(LDADD) $(CILK_LIBS) \
 	tests/libsais.la
 apps_parasail_stats_SOURCES = apps/parasail_stats.c
+tests_traceback_SOURCES = tests/traceback.c
 tests_test_align_SOURCES = tests/test_align.c
 tests_test_gcups_SOURCES = tests/test_gcups.c
 tests_test_isa_SOURCES = tests/test_isa.c
@@ -4342,6 +4348,12 @@ tests/tests_test_verify_traces-test_verify_traces.$(OBJEXT):  \
 tests/test_verify_traces$(EXEEXT): $(tests_test_verify_traces_OBJECTS) $(tests_test_verify_traces_DEPENDENCIES) $(EXTRA_tests_test_verify_traces_DEPENDENCIES) tests/$(am__dirstamp)
 	@rm -f tests/test_verify_traces$(EXEEXT)
 	$(AM_V_CCLD)$(tests_test_verify_traces_LINK) $(tests_test_verify_traces_OBJECTS) $(tests_test_verify_traces_LDADD) $(LIBS)
+tests/traceback.$(OBJEXT): tests/$(am__dirstamp) \
+	tests/$(DEPDIR)/$(am__dirstamp)
+
+tests/traceback$(EXEEXT): $(tests_traceback_OBJECTS) $(tests_traceback_DEPENDENCIES) $(EXTRA_tests_traceback_DEPENDENCIES) tests/$(am__dirstamp)
+	@rm -f tests/traceback$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(tests_traceback_OBJECTS) $(tests_traceback_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -5257,6 +5269,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/tests_test_verify_rowcols-test_verify_rowcols.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/tests_test_verify_tables-test_verify_tables.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/tests_test_verify_traces-test_verify_traces.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/traceback.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\

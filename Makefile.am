@@ -712,6 +712,7 @@ if HAVE_CILK
 bin_PROGRAMS += apps/parasail_aligner_cilk
 endif
 
+check_PROGRAMS += tests/traceback
 check_PROGRAMS += tests/test_align
 check_PROGRAMS += tests/test_gcups
 check_PROGRAMS += tests/test_isa
@@ -748,6 +749,8 @@ apps_parasail_aligner_cilk_LDADD += $(CILK_LIBS)
 apps_parasail_aligner_cilk_LDADD += tests/libsais.la
 
 apps_parasail_stats_SOURCES = apps/parasail_stats.c
+
+tests_traceback_SOURCES = tests/traceback.c
 
 tests_test_align_SOURCES = tests/test_align.c
 
