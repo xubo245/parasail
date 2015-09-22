@@ -95,8 +95,7 @@ parasail_result_t* ENAME(
             tbl_tbl = NWscore + matrow[s2[j-1]];
             del_pr[j] = MAX(del_tbl, del_del);
             ins_cr    = MAX(ins_tbl, ins_ins);
-            Wscore = MAX(tbl_tbl, 0);
-            Wscore = MAX(Wscore, del_pr[j]);
+            Wscore = MAX(tbl_tbl, del_pr[j]);
             Wscore = MAX(Wscore, ins_cr);
             tbl_pr[j] = Wscore;
 #ifdef PARASAIL_TABLE

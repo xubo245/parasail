@@ -16,18 +16,18 @@ KSEQ_INIT(int, read)
 #include "parasail/memory.h"
 
 static void traceback_sw(
-        const char *seqA, 
+        const char *seqA,
         int lena,
         const char *seqB,
-        int lenb, 
+        int lenb,
         const parasail_matrix_t *matrix,
         parasail_result_t *result);
 
 static void traceback_sg(
-        const char *seqA, 
+        const char *seqA,
         int lena,
         const char *seqB,
-        int lenb, 
+        int lenb,
         const parasail_matrix_t *matrix,
         parasail_result_t *result);
 
@@ -348,7 +348,7 @@ static void traceback_sw(
     int i = result->end_query;
     int j = result->end_ref;
     int where = PARASAIL_DIAG;
-    while (i > 0 && j > 0) {
+    while (i >= 0 && j >= 0) {
         int loc = i*lenb + j;
         assert(i >= 0 && j >= 0);
         if (PARASAIL_DIAG == where) {
@@ -366,9 +366,6 @@ static void traceback_sw(
                 where = PARASAIL_DEL;
             }
             else if (result->trace_table[loc] == PARASAIL_ZERO) {
-                //*(qc++) = seqA[i];
-                //*(dc++) = seqB[j];
-                //*(ac++) = match_char(seqA[i], seqB[j], matrix);
                 break;
             }
             else {
@@ -406,9 +403,6 @@ static void traceback_sw(
             }
         }
         else if (PARASAIL_ZERO == where) {
-            //*(qc++) = seqA[i];
-            //*(dc++) = seqB[j];
-            //*(ac++) = match_char(seqA[i], seqB[j], matrix);
             break;
         }
         else {
@@ -460,7 +454,7 @@ static void traceback_sg(
     int i = result->end_query;
     int j = result->end_ref;
     int where = PARASAIL_DIAG;
-    while (i > 0 && j > 0) {
+    while (i >= 0 && j >= 0) {
         int loc = i*lenb + j;
         assert(i >= 0 && j >= 0);
         if (PARASAIL_DIAG == where) {
