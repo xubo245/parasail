@@ -181,7 +181,7 @@ parasail_result_t* ENAME(
             similar = WHS;
             length = WHL;
             end_query = i-1;
-            end_ref = j-1;
+            end_ref = s2Len-1;
         }
 #ifdef PARASAIL_ROWCOL
         result->score_col[i-1] = WH;
