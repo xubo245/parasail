@@ -88,29 +88,6 @@ parasail_result_t* parasail_ssw_16(
 }
 #endif
 
-parasail_result_t* parasail_sw(
-        const char * const restrict s1, const int s1Len,
-        const char * const restrict s2, const int s2Len,
-        const int open, const int gap, const parasail_matrix_t *matrix)
-{
-    int saturated = 0;
-    parasail_result_t *result;
-
-    result = parasail_sw_scan_8(s1, s1Len, s2, s2Len, open, gap, matrix);
-    if (result->saturated) {
-        saturated = 1;
-        parasail_result_free(result);
-        result = parasail_sw_scan_16(s1, s1Len, s2, s2Len, open, gap, matrix);
-    }
-    if (result->saturated) {
-        parasail_result_free(result);
-        result = parasail_sw_scan_32(s1, s1Len, s2, s2Len, open, gap, matrix);
-    }
-    result->saturated = saturated;
-
-    return result;
-}
-
 static inline void parse_sequences(
         const char *filename, char ***strings_, size_t **sizes_, size_t *count_)
 {
