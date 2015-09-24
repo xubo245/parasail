@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -139,8 +140,11 @@ int main(int argc, char **argv)
     const parasail_matrix_t *matrix = NULL;
     int open = 10;
     int extend = 1;
+    int match = 1;
+    int mismatch = 0;
+    int use_dna = 0;
 
-    while ((c = getopt(argc, argv, "a:x:y:f:m:o:e:")) != -1) {
+    while ((c = getopt(argc, argv, "a:x:y:f:m:o:e:dX:Y:")) != -1) {
         switch (c) {
             case 'a':
                 funcname = optarg;
@@ -165,6 +169,23 @@ int main(int argc, char **argv)
                 break;
             case 'f':
                 filename = optarg;
+                break;
+            case 'd':
+                use_dna = 1;
+                break;
+            case 'X':
+                match = atoi(optarg);
+                if (match < 0) {
+                    fprintf(stderr, "match must be >= 0\n");
+                    exit(1);
+                }
+                break;
+            case 'Y':
+                mismatch = atoi(optarg);
+                if (mismatch < 0) {
+                    fprintf(stderr, "mismatch must be >= 0\n");
+                    exit(1);
+                }
                 break;
             case 'm':
                 matrixname = optarg;
@@ -218,18 +239,25 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    /* select the matrix */
-    if (matrixname) {
+    /* select the substitution matrix */
+    if (NULL != matrixname && use_dna) {
+        fprintf(stderr, "Cannot specify matrix name for DNA alignments.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (use_dna) {
+        matrix = parasail_matrix_create("ACGT", match, -mismatch);
+    }
+    else {
+        if (NULL == matrixname) {
+            matrixname = "blosum62";
+        }
         matrix = parasail_matrix_lookup(matrixname);
         if (NULL == matrix) {
             fprintf(stderr, "Specified substitution matrix not found.\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
-    else {
-        fprintf(stderr, "No substitution matrix specified.\n");
-        exit(1);
-    }
+
 
     if ((unsigned long)seqA_index >= seq_count) {
         fprintf(stderr, "seqA index out of bounds\n");
@@ -297,8 +325,6 @@ int main(int argc, char **argv)
     else {
         result = function(seqA, lena, seqB, lenb, open, extend, matrix);
     }
-    printf("score=%d\n", result->score);
-    printf("end_query=%d end_ref=%d\n", result->end_query, result->end_ref);
     assert(result->trace_table);
     assert(result->trace_ins_table);
     assert(result->trace_del_table);
@@ -317,7 +343,42 @@ int main(int argc, char **argv)
         assert(0);
     }
 
+    printf("Score:         %d\n", result->score);
+    printf("end_query:     %d\n", result->end_query);
+    printf("end_ref:       %d\n", result->end_ref);
+
     parasail_result_free(result);
+
+    /* let's see how the stats version of the same trace function
+     * behaves */
+    {
+        char *dup = strdup(funcname);
+        char *loc = strstr(dup, "trace");
+        if (NULL != loc) {
+            /* this works because lengths are same */
+            (void)strcpy(loc, "stats");
+        }
+        printf("stats function '%s'\n", dup);
+        function = parasail_lookup_function(dup);
+        if (NULL == function) {
+            fprintf(stderr, "corresponding stats function not found.\n");
+            exit(EXIT_FAILURE);
+        }
+        
+        result = function(seqA, lena, seqB, lenb, open, extend, matrix);
+        printf("Length:        %d\n", result->length);
+        printf("Identity:   %d/%d\n", result->matches, result->length);
+        printf("Similarity: %d/%d\n", result->similar, result->length);
+        printf("Gaps:       %d/%d\n", -1, result->length);
+        printf("Score:         %d\n", result->score);
+        printf("end_query:     %d\n", result->end_query);
+        printf("end_ref:       %d\n", result->end_ref);
+
+        parasail_result_free(result);
+
+        free(dup);
+    }
+    /* cleanup parsed sequences */
 
     {
         int s;
@@ -414,6 +475,10 @@ static void traceback_sw(
     *(ac++) = '\0';
 
     if (1) {
+        int mch = 0;
+        int sim = 0;
+        int gap = 0;
+        int len = strlen(a);
         printf("Length: %zu\n", strlen(a));
         char *tmp = NULL;
         tmp = parasail_reverse(q, strlen(q));
@@ -421,10 +486,24 @@ static void traceback_sw(
         free(tmp);
         tmp = parasail_reverse(a, strlen(a));
         printf("%s\n", tmp);
+        for (i=0; i<len; ++i) {
+            if (tmp[i] == '|') { ++mch; ++sim; }
+            else if (tmp[i] == ':') ++sim;
+            else if (tmp[i] == '.') ;
+            else if (tmp[i] == ' ') ++gap;
+            else {
+                printf("bad char in traceback '%c'\n", tmp[i]);
+                assert(0);
+            }
+        }
         free(tmp);
         tmp = parasail_reverse(d, strlen(d));
         printf("%s\n", tmp);
         free(tmp);
+        printf("Length:        %d\n", len);
+        printf("Identity:   %d/%d\n", mch, len);
+        printf("Similarity: %d/%d\n", sim, len);
+        printf("Gaps:       %d/%d\n", gap, len);
     }
     else {
         printf("%s\n", q);
@@ -516,17 +595,34 @@ static void traceback_sg(
     *(ac++) = '\0';
 
     if (1) {
-        printf("Length: %zu\n", strlen(a));
+        int mch = 0;
+        int sim = 0;
+        int gap = 0;
+        int len = strlen(a);
         char *tmp = NULL;
         tmp = parasail_reverse(q, strlen(q));
         printf("%s\n", tmp);
         free(tmp);
-        tmp = parasail_reverse(a, strlen(a));
+        tmp = parasail_reverse(a, len);
         printf("%s\n", tmp);
+        for (i=0; i<len; ++i) {
+            if (tmp[i] == '|') { ++mch; ++sim; }
+            else if (tmp[i] == ':') ++sim;
+            else if (tmp[i] == '.') ;
+            else if (tmp[i] == ' ') ++gap;
+            else {
+                printf("bad char in traceback '%c'\n", tmp[i]);
+                assert(0);
+            }
+        }
         free(tmp);
         tmp = parasail_reverse(d, strlen(d));
         printf("%s\n", tmp);
         free(tmp);
+        printf("Length:        %d\n", len);
+        printf("Identity:   %d/%d\n", mch, len);
+        printf("Similarity: %d/%d\n", sim, len);
+        printf("Gaps:       %d/%d\n", gap, len);
     }
     else {
         printf("%s\n", q);
