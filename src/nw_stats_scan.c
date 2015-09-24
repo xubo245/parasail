@@ -170,6 +170,8 @@ parasail_result_t* ENAME(
     result->matches = M[s1Len-1];
     result->similar = S[s1Len-1];
     result->length = L[s1Len-1];
+    result->end_query = s1Len-1;
+    result->end_ref = s2Len-1;
 
     parasail_free(Ex);
     parasail_free(Lt);

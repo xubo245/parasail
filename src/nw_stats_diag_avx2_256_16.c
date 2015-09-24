@@ -258,8 +258,8 @@ parasail_result_t* FNAME(
 #endif
     int32_t i = 0;
     int32_t j = 0;
-    int32_t end_query = 0;
-    int32_t end_ref = 0;
+    int32_t end_query = s1Len-1;
+    int32_t end_ref = s2Len-1;
     int16_t score = NEG_INF;
     int16_t matches = NEG_INF;
     int16_t similar = NEG_INF;
