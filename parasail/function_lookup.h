@@ -1516,8 +1516,6 @@ static const parasail_function_info_t functions[] = {
 {parasail_sw_trace_diag_sse41_128_16, "parasail_sw_trace_diag_sse41_128_16", "sw",    "diag", "sse41", "128", "16",  8, 0, 0, 1, 0, 0},
 {parasail_sw_trace_diag_sse41_128_8,  "parasail_sw_trace_diag_sse41_128_8",  "sw",    "diag", "sse41", "128",  "8", 16, 0, 0, 1, 0, 0},
 {parasail_sw_trace_diag_sse41_128_sat, "parasail_sw_trace_diag_sse41_128_sat", "sw",    "diag", "sse41", "128", "sat", 16, 0, 0, 1, 0, 0},
-{parasail_sw_trace_blocked_sse41_128_32, "parasail_sw_trace_blocked_sse41_128_32", "sw", "blocked", "sse41", "128", "32",  4, 0, 0, 1, 0, 0},
-{parasail_sw_trace_blocked_sse41_128_16, "parasail_sw_trace_blocked_sse41_128_16", "sw", "blocked", "sse41", "128", "16",  8, 0, 0, 1, 0, 0},
 #endif
 #if HAVE_AVX2
 {parasail_sw_trace_scan_avx2_256_64,  "parasail_sw_trace_scan_avx2_256_64",  "sw",    "scan", "avx2",  "256", "64",  4, 0, 0, 1, 0, 0},

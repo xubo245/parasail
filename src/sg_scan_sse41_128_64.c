@@ -81,13 +81,8 @@ static inline void arr_store_col(
 #define FNAME parasail_sg_rowcol_scan_sse41_128_64
 #define PNAME parasail_sg_rowcol_scan_profile_sse41_128_64
 #else
-#ifdef PARASAIL_TRACE
-#define FNAME parasail_sg_trace_scan_sse41_128_64
-#define PNAME parasail_sg_trace_scan_profile_sse41_128_64
-#else
 #define FNAME parasail_sg_scan_sse41_128_64
 #define PNAME parasail_sg_scan_profile_sse41_128_64
-#endif
 #endif
 #endif
 
@@ -144,11 +139,7 @@ parasail_result_t* PNAME(
 #ifdef PARASAIL_ROWCOL
     parasail_result_t *result = parasail_result_new_rowcol1(segLen*segWidth, s2Len);
 #else
-#ifdef PARASAIL_TRACE
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
-#else
     parasail_result_t *result = parasail_result_new();
-#endif
 #endif
 #endif
 

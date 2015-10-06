@@ -43,6 +43,16 @@ template_filenames = [
 "sw_stats_diag.c",
 "sw_stats_scan.c",
 "sw_stats_striped.c",
+
+"nw_trace_diag.c",
+"nw_trace_scan.c",
+"nw_trace_striped.c",
+"sg_trace_diag.c",
+"sg_trace_scan.c",
+"sg_trace_striped.c",
+"sw_trace_diag.c",
+"sw_trace_scan.c",
+"sw_trace_striped.c",
 ]
 
 special_templates = [
@@ -385,6 +395,12 @@ def generated_params(params):
     for param in params:
         if param in template and str(params[param]).endswith("_rpl"):
             fixes += params[params[param]]
+    if ("trace" in params["NAME"]
+            and ("scan" in params["NAME"] or "striped" in params["NAME"])
+            and "nw" not in params["NAME"]
+            and "sg" not in params["NAME"]):
+        if params["VEXTRACT"].endswith("_rpl"):
+            fixes = params[params["VEXTRACT"]] + fixes
     params["FIXES"] = fixes
     params = generate_printer(params)
     params = generate_saturation_check(params)
@@ -410,7 +426,7 @@ for template_filename in template_filenames:
             if len(parts) == 3:
                 table_prefix = "%s_%s_table_%s" % (parts[0], parts[1], parts[2])
                 rowcol_prefix = "%s_%s_rowcol_%s" % (parts[0], parts[1], parts[2])
-                trace_prefix = "%s_%s_trace_%s" % (parts[0], parts[1], parts[2])
+                trace_prefix = "%s_trace_%s" % (parts[0], parts[2])
             table_prefix_prof = table_prefix + "_profile"
             rowcol_prefix_prof = rowcol_prefix + "_profile"
             trace_prefix_prof = trace_prefix + "_profile"

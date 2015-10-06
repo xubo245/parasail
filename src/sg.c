@@ -22,11 +22,7 @@
 #ifdef PARASAIL_ROWCOL
 #define ENAME parasail_sg_rowcol
 #else
-#ifdef PARASAIL_TRACE
-#define ENAME parasail_sg_trace
-#else
 #define ENAME parasail_sg
-#endif
 #endif
 #endif
 
@@ -41,11 +37,7 @@ parasail_result_t* ENAME(
 #ifdef PARASAIL_ROWCOL
     parasail_result_t *result = parasail_result_new_rowcol1(s1Len, s2Len);
 #else
-#ifdef PARASAIL_TRACE
-    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len);
-#else
     parasail_result_t *result = parasail_result_new();
-#endif
 #endif
 #endif
     int * const restrict s1 = parasail_memalign_int(16, s1Len);
@@ -104,18 +96,6 @@ parasail_result_t* ENAME(
 #ifdef PARASAIL_TABLE
             result->score_table[(i-1)*s2Len + (j-1)] = Wscore;
 #endif
-#ifdef PARASAIL_TRACE
-            result->trace_del_table[(i-1)*s2Len + (j-1)] = 
-                (del_tbl > del_del) ? PARASAIL_DIAG
-                                    : PARASAIL_DEL;
-            result->trace_ins_table[(i-1)*s2Len + (j-1)] = 
-                (ins_tbl > ins_ins) ? PARASAIL_DIAG
-                                    : PARASAIL_INS;
-            result->trace_table[(i-1)*s2Len + (j-1)] = 
-                (Wscore == tbl_tbl) ? PARASAIL_DIAG
-                    : (Wscore == del_pr[j]) ? PARASAIL_DEL
-                    : PARASAIL_INS;
-#endif
         }
 #ifdef PARASAIL_ROWCOL
         result->score_col[i-1] = Wscore;
@@ -163,18 +143,6 @@ parasail_result_t* ENAME(
             }
 #ifdef PARASAIL_TABLE
             result->score_table[(i-1)*s2Len + (j-1)] = Wscore;
-#endif
-#ifdef PARASAIL_TRACE
-            result->trace_del_table[(i-1)*s2Len + (j-1)] = 
-                (del_tbl > del_del) ? PARASAIL_DIAG
-                                    : PARASAIL_DEL;
-            result->trace_ins_table[(i-1)*s2Len + (j-1)] = 
-                (ins_tbl > ins_ins) ? PARASAIL_DIAG
-                                    : PARASAIL_INS;
-            result->trace_table[(i-1)*s2Len + (j-1)] = 
-                (Wscore == tbl_tbl) ? PARASAIL_DIAG
-                    : (Wscore == del_pr[j]) ? PARASAIL_DEL
-                    : PARASAIL_INS;
 #endif
 #ifdef PARASAIL_ROWCOL
             result->score_row[j-1] = tbl_pr[j];

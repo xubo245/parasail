@@ -22,11 +22,7 @@
 #ifdef PARASAIL_ROWCOL
 #define ENAME parasail_sg_rowcol_scan
 #else
-#ifdef PARASAIL_TRACE
-#define ENAME parasail_sg_trace_scan
-#else
 #define ENAME parasail_sg_scan
-#endif
 #endif
 #endif
 
@@ -41,11 +37,7 @@ parasail_result_t* ENAME(
 #ifdef PARASAIL_ROWCOL
     parasail_result_t *result = parasail_result_new_rowcol1(s1Len, s2Len);
 #else
-#ifdef PARASAIL_TRACE
-    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len);
-#else
     parasail_result_t *result = parasail_result_new();
-#endif
 #endif
 #endif
     int * const restrict s1 = parasail_memalign_int(16, s1Len);

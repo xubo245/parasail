@@ -16,7 +16,9 @@
 #include "parasail/memory.h"
 #include "parasail/internal_avx.h"
 
-#define NEG_INF INT8_MIN
+#define SWAP(A,B) { __m256i* tmp = A; A = B; B = tmp; }
+#define SWAP3(A,B,C) { __m256i* tmp = A; A = B; B = C; C = tmp; }
+
 
 #if HAVE_AVX2_MM256_EXTRACT_EPI8
 #define _mm256_extract_epi8_rpl _mm256_extract_epi8
@@ -41,7 +43,7 @@ static inline int8_t _mm256_hmax_epi8_rpl(__m256i a) {
 
 
 #ifdef PARASAIL_TABLE
-static inline void arr_store_si256(
+static inline void arr_store(
         int *array,
         __m256i vH,
         int32_t t,
@@ -136,13 +138,8 @@ static inline void arr_store_col(
 #define FNAME parasail_sw_rowcol_striped_avx2_256_8
 #define PNAME parasail_sw_rowcol_striped_profile_avx2_256_8
 #else
-#ifdef PARASAIL_TRACE
-#define FNAME parasail_sw_trace_striped_avx2_256_8
-#define PNAME parasail_sw_trace_striped_profile_avx2_256_8
-#else
 #define FNAME parasail_sw_striped_avx2_256_8
 #define PNAME parasail_sw_striped_profile_avx2_256_8
-#endif
 #endif
 #endif
 
@@ -174,11 +171,11 @@ parasail_result_t* PNAME(
     __m256i* const restrict vProfile = (__m256i*)profile->profile8.score;
     __m256i* restrict pvHStore = parasail_memalign___m256i(32, segLen);
     __m256i* restrict pvHLoad = parasail_memalign___m256i(32, segLen);
-    __m256i* restrict pvHMax = parasail_memalign___m256i(32, segLen);
     __m256i* const restrict pvE = parasail_memalign___m256i(32, segLen);
+    __m256i* restrict pvHMax = parasail_memalign___m256i(32, segLen);
     __m256i vGapO = _mm256_set1_epi8(open);
     __m256i vGapE = _mm256_set1_epi8(gap);
-    __m256i vZero = _mm256_set1_epi8(0);
+    __m256i vZero = _mm256_setzero_si256();
     int8_t bias = INT8_MIN;
     int8_t score = bias;
     __m256i vBias = _mm256_set1_epi8(bias);
@@ -197,11 +194,7 @@ parasail_result_t* PNAME(
     const int32_t offset = (s1Len - 1) % segLen;
     const int32_t position = (segWidth - 1) - (s1Len - 1) / segLen;
 #else
-#ifdef PARASAIL_TRACE
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
-#else
     parasail_result_t *result = parasail_result_new();
-#endif
 #endif
 #endif
 
@@ -215,14 +208,14 @@ parasail_result_t* PNAME(
         __m256i vF;
         __m256i vH;
         const __m256i* vP = NULL;
-        __m256i* pv = NULL;
 
         /* Initialize F value to 0.  Any errors to vH values will be
          * corrected in the Lazy_F loop.  */
         vF = vBias;
 
         /* load final segment of pvHStore and shift left by 1 bytes */
-        vH = _mm256_slli_si256_rpl(pvHStore[segLen - 1], 1);
+        vH = _mm256_load_si256(&pvHStore[segLen - 1]);
+        vH = _mm256_slli_si256_rpl(vH, 1);
         vH = _mm256_blendv_epi8(vH, vBias, insert_mask);
 
         /* Correct part of the vProfile */
@@ -230,16 +223,11 @@ parasail_result_t* PNAME(
 
         if (end_ref == j-2) {
             /* Swap in the max buffer. */
-            pv = pvHMax;
-            pvHMax = pvHLoad;
-            pvHLoad = pvHStore;
-            pvHStore = pv;
+            SWAP3(pvHMax,  pvHLoad,  pvHStore)
         }
         else {
             /* Swap the 2 H buffers. */
-            pv = pvHLoad;
-            pvHLoad = pvHStore;
-            pvHStore = pv;
+            SWAP(pvHLoad,  pvHStore)
         }
 
         /* inner loop to process the query sequence */
@@ -253,7 +241,7 @@ parasail_result_t* PNAME(
             /* Save vH values. */
             _mm256_store_si256(pvHStore + i, vH);
 #ifdef PARASAIL_TABLE
-            arr_store_si256(result->score_table, vH, i, segLen, j, s2Len, bias);
+            arr_store(result->score_table, vH, i, segLen, j, s2Len, bias);
 #endif
             vMaxH = _mm256_max_epi8(vH, vMaxH);
 
@@ -281,7 +269,7 @@ parasail_result_t* PNAME(
                 vH = _mm256_max_epi8(vH,vF);
                 _mm256_store_si256(pvHStore + i, vH);
 #ifdef PARASAIL_TABLE
-                arr_store_si256(result->score_table, vH, i, segLen, j, s2Len, bias);
+                arr_store(result->score_table, vH, i, segLen, j, s2Len, bias);
 #endif
                 vMaxH = _mm256_max_epi8(vH, vMaxH);
                 vH = _mm256_subs_epi8(vH, vGapO);
@@ -334,22 +322,18 @@ end:
     }
 
     if (result->saturated) {
-        score = INT8_MAX;
+        score = 0;
         end_query = 0;
         end_ref = 0;
     }
     else {
         if (end_ref == j-1) {
             /* end_ref was the last store column */
-            __m256i *pv = pvHMax;
-            pvHMax = pvHStore;
-            pvHStore = pv;
+            SWAP(pvHMax,  pvHStore)
         }
         else if (end_ref == j-2) {
             /* end_ref was the last load column */
-            __m256i *pv = pvHMax;
-            pvHMax = pvHLoad;
-            pvHLoad = pv;
+            SWAP(pvHMax,  pvHLoad)
         }
         /* Trace the alignment ending position on read. */
         {
@@ -371,8 +355,8 @@ end:
     result->end_query = end_query;
     result->end_ref = end_ref;
 
-    parasail_free(pvE);
     parasail_free(pvHMax);
+    parasail_free(pvE);
     parasail_free(pvHLoad);
     parasail_free(pvHStore);
 

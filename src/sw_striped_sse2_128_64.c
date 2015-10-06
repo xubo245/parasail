@@ -21,12 +21,6 @@
 
 #define NEG_INF (INT64_MIN/(int64_t)(2))
 
-static inline __m128i _mm_blendv_epi8_rpl(__m128i a, __m128i b, __m128i mask) {
-    a = _mm_andnot_si128(mask, a);
-    a = _mm_or_si128(a, _mm_and_si128(mask, b));
-    return a;
-}
-
 static inline __m128i _mm_cmpgt_epi64_rpl(__m128i a, __m128i b) {
     __m128i_64_t A;
     __m128i_64_t B;
@@ -34,23 +28,6 @@ static inline __m128i _mm_cmpgt_epi64_rpl(__m128i a, __m128i b) {
     B.m = b;
     A.v[0] = (A.v[0]>B.v[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
     A.v[1] = (A.v[1]>B.v[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
-    return A.m;
-}
-
-static inline __m128i _mm_insert_epi64_rpl(__m128i a, int64_t i, const int imm) {
-    __m128i_64_t A;
-    A.m = a;
-    A.v[imm] = i;
-    return A.m;
-}
-
-static inline __m128i _mm_cmpeq_epi64_rpl(__m128i a, __m128i b) {
-    __m128i_64_t A;
-    __m128i_64_t B;
-    A.m = a;
-    B.m = b;
-    A.v[0] = (A.v[0]==B.v[0]) ? 0xFFFFFFFFFFFFFFFF : 0;
-    A.v[1] = (A.v[1]==B.v[1]) ? 0xFFFFFFFFFFFFFFFF : 0;
     return A.m;
 }
 
@@ -76,7 +53,7 @@ static inline int64_t _mm_hmax_epi64_rpl(__m128i a) {
 }
 
 
-#if defined(PARASAIL_TABLE) || defined(PARASAIL_TRACE)
+#ifdef PARASAIL_TABLE
 static inline void arr_store(
         int *array,
         __m128i vH,
@@ -110,13 +87,8 @@ static inline void arr_store_col(
 #define FNAME parasail_sw_rowcol_striped_sse2_128_64
 #define PNAME parasail_sw_rowcol_striped_profile_sse2_128_64
 #else
-#ifdef PARASAIL_TRACE
-#define FNAME parasail_sw_trace_striped_sse2_128_64
-#define PNAME parasail_sw_trace_striped_profile_sse2_128_64
-#else
 #define FNAME parasail_sw_striped_sse2_128_64
 #define PNAME parasail_sw_striped_profile_sse2_128_64
-#endif
 #endif
 #endif
 
@@ -157,6 +129,7 @@ parasail_result_t* PNAME(
     __m128i vMaxH = vZero;
     __m128i vMaxHUnit = vZero;
     int64_t maxp = INT64_MAX - (int64_t)(matrix->max+1);
+    
     /*int64_t stop = profile->stop == INT32_MAX ?  INT64_MAX : (int64_t)profile->stop;*/
 #ifdef PARASAIL_TABLE
     parasail_result_t *result = parasail_result_new_table1(segLen*segWidth, s2Len);
@@ -166,41 +139,19 @@ parasail_result_t* PNAME(
     const int32_t offset = (s1Len - 1) % segLen;
     const int32_t position = (segWidth - 1) - (s1Len - 1) / segLen;
 #else
-#ifdef PARASAIL_TRACE
-    __m128i* const restrict pvHT = parasail_memalign___m128i(16, segLen);
-    __m128i* const restrict pvET = parasail_memalign___m128i(16, segLen);
-    __m128i* const restrict pvEa = parasail_memalign___m128i(16, segLen);
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
-    __m128i vTZero = _mm_set1_epi64x(PARASAIL_ZERO);
-    __m128i vTIns  = _mm_set1_epi64x(PARASAIL_INS);
-    __m128i vTDel  = _mm_set1_epi64x(PARASAIL_DEL);
-    __m128i vTDiag = _mm_set1_epi64x(PARASAIL_DIAG);
-#else
     parasail_result_t *result = parasail_result_new();
 #endif
 #endif
-#endif
 
+    /* initialize H and E */
     parasail_memset___m128i(pvHStore, vZero, segLen);
     parasail_memset___m128i(pvE, _mm_set1_epi64x(-open), segLen);
 
-#ifdef PARASAIL_TRACE
-    parasail_memset___m128i(pvEa, _mm_set1_epi64x(-open), segLen);
-    for (i=0; i<segLen; ++i) {
-        arr_store(result->trace_ins_table,
-                vTDiag, i, segLen, 0, s2Len);
-    }
-#endif
-
     /* outer loop over database sequence */
     for (j=0; j<s2Len; ++j) {
-        __m128i vEF_opn;
         __m128i vE;
-        __m128i vE_ext;
         __m128i vF;
-        __m128i vF_ext;
         __m128i vH;
-        __m128i vH_dag;
         const __m128i* vP = NULL;
 
         /* Initialize F value to 0.  Any errors to vH values will be
@@ -225,66 +176,29 @@ parasail_result_t* PNAME(
 
         /* inner loop to process the query sequence */
         for (i=0; i<segLen; ++i) {
+            vH = _mm_add_epi64(vH, _mm_load_si128(vP + i));
             vE = _mm_load_si128(pvE + i);
 
             /* Get max from vH, vE and vF. */
-            vH_dag = _mm_add_epi64(vH, _mm_load_si128(vP + i));
-            vH_dag = _mm_max_epi64_rpl(vH_dag, vZero);
-            vH = _mm_max_epi64_rpl(vH_dag, vE);
+            vH = _mm_max_epi64_rpl(vH, vE);
             vH = _mm_max_epi64_rpl(vH, vF);
+            vH = _mm_max_epi64_rpl(vH, vZero);
             /* Save vH values. */
             _mm_store_si128(pvHStore + i, vH);
-
-#ifdef PARASAIL_TRACE
-            {
-                __m128i cond_zero = _mm_cmpeq_epi64_rpl(vH, vZero);
-                __m128i case1 = _mm_cmpeq_epi64_rpl(vH, vH_dag);
-                __m128i case2 = _mm_cmpeq_epi64_rpl(vH, vF);
-                __m128i vT = _mm_blendv_epi8_rpl(
-                        _mm_blendv_epi8_rpl(vTIns, vTDel, case2),
-                        _mm_blendv_epi8_rpl(vTDiag, vTZero, cond_zero),
-                        case1);
-                _mm_store_si128(pvHT + i, vT);
-                arr_store(result->trace_table, vT, i, segLen, j, s2Len);
-            }
-#endif
 #ifdef PARASAIL_TABLE
             arr_store(result->score_table, vH, i, segLen, j, s2Len);
 #endif
             vMaxH = _mm_max_epi64_rpl(vH, vMaxH);
-            vEF_opn = _mm_sub_epi64(vH, vGapO);
 
             /* Update vE value. */
-            vE_ext = _mm_sub_epi64(vE, vGapE);
-            vE = _mm_max_epi64_rpl(vEF_opn, vE_ext);
+            vH = _mm_sub_epi64(vH, vGapO);
+            vE = _mm_sub_epi64(vE, vGapE);
+            vE = _mm_max_epi64_rpl(vE, vH);
             _mm_store_si128(pvE + i, vE);
-#ifdef PARASAIL_TRACE
-            {
-                __m128i vEa = _mm_load_si128(pvEa + i);
-                __m128i vEa_ext = _mm_sub_epi64(vEa, vGapE);
-                vEa = _mm_max_epi64_rpl(vEF_opn, vEa_ext);
-                _mm_store_si128(pvEa + i, vEa);
-                if (j+1<s2Len) {
-                    __m128i cond = _mm_cmpgt_epi64_rpl(vEF_opn, vEa_ext);
-                    __m128i vT = _mm_blendv_epi8_rpl(vTIns, vTDiag, cond);
-                    _mm_store_si128(pvET + i, vT);
-                    arr_store(result->trace_ins_table, vT, i, segLen, j+1, s2Len);
-                }
-            }
-#endif
 
             /* Update vF value. */
-            vF_ext = _mm_sub_epi64(vF, vGapE);
-            vF = _mm_max_epi64_rpl(vEF_opn, vF_ext);
-#ifdef PARASAIL_TRACE
-            {
-                __m128i cond = _mm_cmpgt_epi64_rpl(vEF_opn, vF_ext);
-                __m128i vT = _mm_blendv_epi8_rpl(vTDel, vTDiag, cond);
-                if (i+1<segLen) {
-                    arr_store(result->trace_del_table, vT, i+1, segLen, j, s2Len);
-                }
-            }
-#endif
+            vF = _mm_sub_epi64(vF, vGapE);
+            vF = _mm_max_epi64_rpl(vF, vH);
 
             /* Load the next vH. */
             vH = _mm_load_si128(pvHLoad + i);
@@ -293,82 +207,19 @@ parasail_result_t* PNAME(
         /* Lazy_F loop: has been revised to disallow adjecent insertion and
          * then deletion, so don't update E(i, i), learn from SWPS3 */
         for (k=0; k<segWidth; ++k) {
-#ifdef PARASAIL_TRACE
-            __m128i vFa;
-            __m128i vFa_ext;
-            __m128i vHp = _mm_load_si128(&pvHLoad[segLen - 1]);
-            vHp = _mm_slli_si128(vHp, 8);
-            vEF_opn = _mm_slli_si128(vEF_opn, 8);
-            vEF_opn = _mm_insert_epi64_rpl(vEF_opn, -open, 0);
-            vF_ext = _mm_slli_si128(vF_ext, 8);
-            vF_ext = _mm_insert_epi64_rpl(vF_ext, NEG_INF, 0);
-            vFa_ext = vF_ext;
-#endif
             vF = _mm_slli_si128(vF, 8);
-            vF = _mm_insert_epi64_rpl(vF, -open, 0);
-#ifdef PARASAIL_TRACE
-            vFa = vF;
-#endif
             for (i=0; i<segLen; ++i) {
                 vH = _mm_load_si128(pvHStore + i);
                 vH = _mm_max_epi64_rpl(vH,vF);
                 _mm_store_si128(pvHStore + i, vH);
-#ifdef PARASAIL_TRACE
-                {
-                    __m128i vT;
-                    __m128i case1;
-                    __m128i case2;
-                    __m128i cond;
-                    vHp = _mm_add_epi64(vHp, _mm_load_si128(vP + i));
-                    vHp = _mm_max_epi64_rpl(vHp, vZero);
-                    case1 = _mm_cmpeq_epi64_rpl(vH, vHp);
-                    case2 = _mm_cmpeq_epi64_rpl(vH, vF);
-                    cond = _mm_andnot_si128(case1,case2);
-                    vT = _mm_load_si128(pvHT + i);
-                    vT = _mm_blendv_epi8_rpl(vT, vTDel, cond);
-                    _mm_store_si128(pvHT + i, vT);
-                    arr_store(result->trace_table, vT, i, segLen, j, s2Len);
-                }
-#endif
 #ifdef PARASAIL_TABLE
                 arr_store(result->score_table, vH, i, segLen, j, s2Len);
 #endif
                 vMaxH = _mm_max_epi64_rpl(vH, vMaxH);
-                /* Update vF value. */
-#ifdef PARASAIL_TRACE
-                {
-                    __m128i cond = _mm_cmpgt_epi64_rpl(vEF_opn, vFa_ext);
-                    __m128i vT = _mm_blendv_epi8_rpl(vTDel, vTDiag, cond);
-                    arr_store(result->trace_del_table, vT, i, segLen, j, s2Len);
-                }
-#endif
-                vEF_opn = _mm_sub_epi64(vH, vGapO);
-                vF_ext = _mm_sub_epi64(vF, vGapE);
-#ifdef PARASAIL_TRACE
-                {
-                    __m128i vET = _mm_load_si128(pvET + i);
-                    __m128i vEa = _mm_load_si128(pvEa + i);
-                    __m128i cond = _mm_cmpgt_epi64_rpl(vEF_opn, vEa);
-                    vEa = _mm_max_epi64_rpl(vEa, vEF_opn);
-                    _mm_store_si128(pvEa + i, vEa);
-                    vET = _mm_blendv_epi8_rpl(vET, vTDiag, cond);
-                    if (j+1<s2Len) {
-                        arr_store(result->trace_ins_table, vET, i, segLen, j+1, s2Len);
-                    }
-                }
-#endif
-                if (! _mm_movemask_epi8(
-                            _mm_or_si128(
-                                _mm_cmpgt_epi64_rpl(vF_ext, vEF_opn),
-                                _mm_cmpeq_epi64_rpl(vF_ext, vEF_opn))))
-                    goto end;
-                /*vF = _mm_max_epi64_rpl(vEF_opn, vF_ext);*/
-                vF = vF_ext;
-#ifdef PARASAIL_TRACE
-                vFa_ext = _mm_sub_epi64(vFa, vGapE);
-                vFa = _mm_max_epi64_rpl(vEF_opn, vFa_ext);
-                vHp = _mm_load_si128(pvHLoad + i);
-#endif
+                vH = _mm_sub_epi64(vH, vGapO);
+                vF = _mm_sub_epi64(vF, vGapE);
+                if (! _mm_movemask_epi8(_mm_cmpgt_epi64_rpl(vF, vH))) goto end;
+                /*vF = _mm_max_epi64_rpl(vF, vH);*/
             }
         }
 end:
@@ -448,11 +299,6 @@ end:
     result->end_query = end_query;
     result->end_ref = end_ref;
 
-#ifdef PARASAIL_TRACE
-    parasail_free(pvEa);
-    parasail_free(pvET);
-    parasail_free(pvHT);
-#endif
     parasail_free(pvHMax);
     parasail_free(pvE);
     parasail_free(pvHLoad);

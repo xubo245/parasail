@@ -90,7 +90,7 @@ isa = ["_sse41_128_32", "_sse41_128_16"]
 for a in alg:
     for s in stats:
         for t in table:
-            if 'trace' in t and 'stats' in s: continue
+            if 'trace' in t: continue
             for p in par:
                 for i in isa:
                     print ""

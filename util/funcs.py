@@ -105,7 +105,8 @@ for table in ["", "_table", "_rowcol", "_trace"]:
                         print_fmt(name, name, alg+stats, par, isa, bits,
                                 width, elem, is_table, is_rowcol, is_trace, is_stats, 0)
                 # blocked implementations only exist for sw sse41 32 and 16 bit
-                if isa == "sse41" and alg == "sw" and not stats:
+                if (isa == "sse41" and alg == "sw"
+                        and not stats and "trace" not in table):
                     par = "blocked"
                     for width in [32, 16]:
                         name = "%s_%s_%s_%s_%s" % (pre, par, isa, bits, width)

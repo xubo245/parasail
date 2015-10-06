@@ -16,11 +16,13 @@
 #include "parasail/memory.h"
 #include "parasail/internal_%(ISA)s.h"
 
-#define NEG_INF %(NEG_INF)s
+#define SWAP(A,B) { %(VTYPE)s* tmp = A; A = B; B = tmp; }
+#define SWAP3(A,B,C) { %(VTYPE)s* tmp = A; A = B; B = C; C = tmp; }
+
 %(FIXES)s
 
 #ifdef PARASAIL_TABLE
-static inline void arr_store_si%(BITS)s(
+static inline void arr_store(
         int *array,
         %(VTYPE)s vH,
         %(INDEX)s t,
@@ -53,13 +55,8 @@ static inline void arr_store_col(
 #define FNAME %(NAME_ROWCOL)s
 #define PNAME %(PNAME_ROWCOL)s
 #else
-#ifdef PARASAIL_TRACE
-#define FNAME %(NAME_TRACE)s
-#define PNAME %(PNAME_TRACE)s
-#else
 #define FNAME %(NAME)s
 #define PNAME %(PNAME)s
-#endif
 #endif
 #endif
 
@@ -91,11 +88,11 @@ parasail_result_t* PNAME(
     %(VTYPE)s* const restrict vProfile = (%(VTYPE)s*)profile->profile%(WIDTH)s.score;
     %(VTYPE)s* restrict pvHStore = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     %(VTYPE)s* restrict pvHLoad = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
-    %(VTYPE)s* restrict pvHMax = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     %(VTYPE)s* const restrict pvE = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
+    %(VTYPE)s* restrict pvHMax = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     %(VTYPE)s vGapO = %(VSET1)s(open);
     %(VTYPE)s vGapE = %(VSET1)s(gap);
-    %(VTYPE)s vZero = %(VSET1)s(0);
+    %(VTYPE)s vZero = %(VSET0)s();
     %(INT)s bias = INT%(WIDTH)s_MIN;
     %(INT)s score = bias;
     %(VTYPE)s vBias = %(VSET1)s(bias);
@@ -114,11 +111,7 @@ parasail_result_t* PNAME(
     const %(INDEX)s offset = (s1Len - 1) %% segLen;
     const %(INDEX)s position = (segWidth - 1) - (s1Len - 1) / segLen;
 #else
-#ifdef PARASAIL_TRACE
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
-#else
     parasail_result_t *result = parasail_result_new();
-#endif
 #endif
 #endif
 
@@ -132,14 +125,14 @@ parasail_result_t* PNAME(
         %(VTYPE)s vF;
         %(VTYPE)s vH;
         const %(VTYPE)s* vP = NULL;
-        %(VTYPE)s* pv = NULL;
 
         /* Initialize F value to 0.  Any errors to vH values will be
          * corrected in the Lazy_F loop.  */
         vF = vBias;
 
         /* load final segment of pvHStore and shift left by %(BYTES)s bytes */
-        vH = %(VSHIFT)s(pvHStore[segLen - 1], %(BYTES)s);
+        vH = %(VLOAD)s(&pvHStore[segLen - 1]);
+        vH = %(VSHIFT)s(vH, %(BYTES)s);
         vH = %(VBLEND)s(vH, vBias, insert_mask);
 
         /* Correct part of the vProfile */
@@ -147,16 +140,11 @@ parasail_result_t* PNAME(
 
         if (end_ref == j-2) {
             /* Swap in the max buffer. */
-            pv = pvHMax;
-            pvHMax = pvHLoad;
-            pvHLoad = pvHStore;
-            pvHStore = pv;
+            SWAP3(pvHMax,  pvHLoad,  pvHStore)
         }
         else {
             /* Swap the 2 H buffers. */
-            pv = pvHLoad;
-            pvHLoad = pvHStore;
-            pvHStore = pv;
+            SWAP(pvHLoad,  pvHStore)
         }
 
         /* inner loop to process the query sequence */
@@ -170,7 +158,7 @@ parasail_result_t* PNAME(
             /* Save vH values. */
             %(VSTORE)s(pvHStore + i, vH);
 #ifdef PARASAIL_TABLE
-            arr_store_si%(BITS)s(result->score_table, vH, i, segLen, j, s2Len, bias);
+            arr_store(result->score_table, vH, i, segLen, j, s2Len, bias);
 #endif
             vMaxH = %(VMAX)s(vH, vMaxH);
 
@@ -198,7 +186,7 @@ parasail_result_t* PNAME(
                 vH = %(VMAX)s(vH,vF);
                 %(VSTORE)s(pvHStore + i, vH);
 #ifdef PARASAIL_TABLE
-                arr_store_si%(BITS)s(result->score_table, vH, i, segLen, j, s2Len, bias);
+                arr_store(result->score_table, vH, i, segLen, j, s2Len, bias);
 #endif
                 vMaxH = %(VMAX)s(vH, vMaxH);
                 vH = %(VSUB)s(vH, vGapO);
@@ -251,22 +239,18 @@ end:
     }
 
     if (result->saturated) {
-        score = INT%(WIDTH)s_MAX;
+        score = 0;
         end_query = 0;
         end_ref = 0;
     }
     else {
         if (end_ref == j-1) {
             /* end_ref was the last store column */
-            %(VTYPE)s *pv = pvHMax;
-            pvHMax = pvHStore;
-            pvHStore = pv;
+            SWAP(pvHMax,  pvHStore)
         }
         else if (end_ref == j-2) {
             /* end_ref was the last load column */
-            %(VTYPE)s *pv = pvHMax;
-            pvHMax = pvHLoad;
-            pvHLoad = pv;
+            SWAP(pvHMax,  pvHLoad)
         }
         /* Trace the alignment ending position on read. */
         {
@@ -288,8 +272,8 @@ end:
     result->end_query = end_query;
     result->end_ref = end_ref;
 
-    parasail_free(pvE);
     parasail_free(pvHMax);
+    parasail_free(pvE);
     parasail_free(pvHLoad);
     parasail_free(pvHStore);
 

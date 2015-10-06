@@ -22,11 +22,7 @@
 #ifdef PARASAIL_ROWCOL
 #define ENAME parasail_nw_rowcol
 #else
-#ifdef PARASAIL_TRACE
-#define ENAME parasail_nw_trace
-#else
 #define ENAME parasail_nw
-#endif
 #endif
 #endif
 
@@ -41,11 +37,7 @@ parasail_result_t* ENAME(
 #ifdef PARASAIL_ROWCOL
     parasail_result_t *result = parasail_result_new_rowcol1(s1Len, s2Len);
 #else
-#ifdef PARASAIL_TRACE
-    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len);
-#else
     parasail_result_t *result = parasail_result_new();
-#endif
 #endif
 #endif
     int * const restrict s1 = parasail_memalign_int(16, s1Len);
@@ -102,18 +94,6 @@ parasail_result_t* ENAME(
             H[j] = WH;
 #ifdef PARASAIL_TABLE
             result->score_table[(i-1)*s2Len + (j-1)] = WH;
-#endif
-#ifdef PARASAIL_TRACE
-            result->trace_del_table[(i-1)*s2Len + (j-1)] = 
-                (F_opn > F_ext) ? PARASAIL_DIAG
-                                    : PARASAIL_DEL;
-            result->trace_ins_table[(i-1)*s2Len + (j-1)] = 
-                (E_opn > E_ext) ? PARASAIL_DIAG
-                                    : PARASAIL_INS;
-            result->trace_table[(i-1)*s2Len + (j-1)] = 
-                (WH == H_dag) ? PARASAIL_DIAG
-                    : (WH == F[j]) ? PARASAIL_DEL
-                    : PARASAIL_INS;
 #endif
         }
 #ifdef PARASAIL_ROWCOL

@@ -21,17 +21,6 @@
 
 #define NEG_INF (INT32_MIN/(int32_t)(2))
 
-#if HAVE_AVX2_MM256_INSERT_EPI32
-#define _mm256_insert_epi32_rpl _mm256_insert_epi32
-#else
-static inline __m256i _mm256_insert_epi32_rpl(__m256i a, int32_t i, int imm) {
-    __m256i_32_t A;
-    A.m = a;
-    A.v[imm] = i;
-    return A.m;
-}
-#endif
-
 #if HAVE_AVX2_MM256_EXTRACT_EPI32
 #define _mm256_extract_epi32_rpl _mm256_extract_epi32
 #else
@@ -52,7 +41,7 @@ static inline int32_t _mm256_hmax_epi32_rpl(__m256i a) {
 }
 
 
-#if defined(PARASAIL_TABLE) || defined(PARASAIL_TRACE)
+#ifdef PARASAIL_TABLE
 static inline void arr_store(
         int *array,
         __m256i vH,
@@ -98,13 +87,8 @@ static inline void arr_store_col(
 #define FNAME parasail_sw_rowcol_striped_avx2_256_32
 #define PNAME parasail_sw_rowcol_striped_profile_avx2_256_32
 #else
-#ifdef PARASAIL_TRACE
-#define FNAME parasail_sw_trace_striped_avx2_256_32
-#define PNAME parasail_sw_trace_striped_profile_avx2_256_32
-#else
 #define FNAME parasail_sw_striped_avx2_256_32
 #define PNAME parasail_sw_striped_profile_avx2_256_32
-#endif
 #endif
 #endif
 
@@ -145,6 +129,7 @@ parasail_result_t* PNAME(
     __m256i vMaxH = vZero;
     __m256i vMaxHUnit = vZero;
     int32_t maxp = INT32_MAX - (int32_t)(matrix->max+1);
+    
     /*int32_t stop = profile->stop == INT32_MAX ?  INT32_MAX : (int32_t)profile->stop;*/
 #ifdef PARASAIL_TABLE
     parasail_result_t *result = parasail_result_new_table1(segLen*segWidth, s2Len);
@@ -154,41 +139,19 @@ parasail_result_t* PNAME(
     const int32_t offset = (s1Len - 1) % segLen;
     const int32_t position = (segWidth - 1) - (s1Len - 1) / segLen;
 #else
-#ifdef PARASAIL_TRACE
-    __m256i* const restrict pvHT = parasail_memalign___m256i(32, segLen);
-    __m256i* const restrict pvET = parasail_memalign___m256i(32, segLen);
-    __m256i* const restrict pvEa = parasail_memalign___m256i(32, segLen);
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
-    __m256i vTZero = _mm256_set1_epi32(PARASAIL_ZERO);
-    __m256i vTIns  = _mm256_set1_epi32(PARASAIL_INS);
-    __m256i vTDel  = _mm256_set1_epi32(PARASAIL_DEL);
-    __m256i vTDiag = _mm256_set1_epi32(PARASAIL_DIAG);
-#else
     parasail_result_t *result = parasail_result_new();
 #endif
 #endif
-#endif
 
+    /* initialize H and E */
     parasail_memset___m256i(pvHStore, vZero, segLen);
     parasail_memset___m256i(pvE, _mm256_set1_epi32(-open), segLen);
 
-#ifdef PARASAIL_TRACE
-    parasail_memset___m256i(pvEa, _mm256_set1_epi32(-open), segLen);
-    for (i=0; i<segLen; ++i) {
-        arr_store(result->trace_ins_table,
-                vTDiag, i, segLen, 0, s2Len);
-    }
-#endif
-
     /* outer loop over database sequence */
     for (j=0; j<s2Len; ++j) {
-        __m256i vEF_opn;
         __m256i vE;
-        __m256i vE_ext;
         __m256i vF;
-        __m256i vF_ext;
         __m256i vH;
-        __m256i vH_dag;
         const __m256i* vP = NULL;
 
         /* Initialize F value to 0.  Any errors to vH values will be
@@ -213,66 +176,29 @@ parasail_result_t* PNAME(
 
         /* inner loop to process the query sequence */
         for (i=0; i<segLen; ++i) {
+            vH = _mm256_add_epi32(vH, _mm256_load_si256(vP + i));
             vE = _mm256_load_si256(pvE + i);
 
             /* Get max from vH, vE and vF. */
-            vH_dag = _mm256_add_epi32(vH, _mm256_load_si256(vP + i));
-            vH_dag = _mm256_max_epi32(vH_dag, vZero);
-            vH = _mm256_max_epi32(vH_dag, vE);
+            vH = _mm256_max_epi32(vH, vE);
             vH = _mm256_max_epi32(vH, vF);
+            vH = _mm256_max_epi32(vH, vZero);
             /* Save vH values. */
             _mm256_store_si256(pvHStore + i, vH);
-
-#ifdef PARASAIL_TRACE
-            {
-                __m256i cond_zero = _mm256_cmpeq_epi32(vH, vZero);
-                __m256i case1 = _mm256_cmpeq_epi32(vH, vH_dag);
-                __m256i case2 = _mm256_cmpeq_epi32(vH, vF);
-                __m256i vT = _mm256_blendv_epi8(
-                        _mm256_blendv_epi8(vTIns, vTDel, case2),
-                        _mm256_blendv_epi8(vTDiag, vTZero, cond_zero),
-                        case1);
-                _mm256_store_si256(pvHT + i, vT);
-                arr_store(result->trace_table, vT, i, segLen, j, s2Len);
-            }
-#endif
 #ifdef PARASAIL_TABLE
             arr_store(result->score_table, vH, i, segLen, j, s2Len);
 #endif
             vMaxH = _mm256_max_epi32(vH, vMaxH);
-            vEF_opn = _mm256_sub_epi32(vH, vGapO);
 
             /* Update vE value. */
-            vE_ext = _mm256_sub_epi32(vE, vGapE);
-            vE = _mm256_max_epi32(vEF_opn, vE_ext);
+            vH = _mm256_sub_epi32(vH, vGapO);
+            vE = _mm256_sub_epi32(vE, vGapE);
+            vE = _mm256_max_epi32(vE, vH);
             _mm256_store_si256(pvE + i, vE);
-#ifdef PARASAIL_TRACE
-            {
-                __m256i vEa = _mm256_load_si256(pvEa + i);
-                __m256i vEa_ext = _mm256_sub_epi32(vEa, vGapE);
-                vEa = _mm256_max_epi32(vEF_opn, vEa_ext);
-                _mm256_store_si256(pvEa + i, vEa);
-                if (j+1<s2Len) {
-                    __m256i cond = _mm256_cmpgt_epi32(vEF_opn, vEa_ext);
-                    __m256i vT = _mm256_blendv_epi8(vTIns, vTDiag, cond);
-                    _mm256_store_si256(pvET + i, vT);
-                    arr_store(result->trace_ins_table, vT, i, segLen, j+1, s2Len);
-                }
-            }
-#endif
 
             /* Update vF value. */
-            vF_ext = _mm256_sub_epi32(vF, vGapE);
-            vF = _mm256_max_epi32(vEF_opn, vF_ext);
-#ifdef PARASAIL_TRACE
-            {
-                __m256i cond = _mm256_cmpgt_epi32(vEF_opn, vF_ext);
-                __m256i vT = _mm256_blendv_epi8(vTDel, vTDiag, cond);
-                if (i+1<segLen) {
-                    arr_store(result->trace_del_table, vT, i+1, segLen, j, s2Len);
-                }
-            }
-#endif
+            vF = _mm256_sub_epi32(vF, vGapE);
+            vF = _mm256_max_epi32(vF, vH);
 
             /* Load the next vH. */
             vH = _mm256_load_si256(pvHLoad + i);
@@ -281,82 +207,19 @@ parasail_result_t* PNAME(
         /* Lazy_F loop: has been revised to disallow adjecent insertion and
          * then deletion, so don't update E(i, i), learn from SWPS3 */
         for (k=0; k<segWidth; ++k) {
-#ifdef PARASAIL_TRACE
-            __m256i vFa;
-            __m256i vFa_ext;
-            __m256i vHp = _mm256_load_si256(&pvHLoad[segLen - 1]);
-            vHp = _mm256_slli_si256_rpl(vHp, 4);
-            vEF_opn = _mm256_slli_si256_rpl(vEF_opn, 4);
-            vEF_opn = _mm256_insert_epi32_rpl(vEF_opn, -open, 0);
-            vF_ext = _mm256_slli_si256_rpl(vF_ext, 4);
-            vF_ext = _mm256_insert_epi32_rpl(vF_ext, NEG_INF, 0);
-            vFa_ext = vF_ext;
-#endif
             vF = _mm256_slli_si256_rpl(vF, 4);
-            vF = _mm256_insert_epi32_rpl(vF, -open, 0);
-#ifdef PARASAIL_TRACE
-            vFa = vF;
-#endif
             for (i=0; i<segLen; ++i) {
                 vH = _mm256_load_si256(pvHStore + i);
                 vH = _mm256_max_epi32(vH,vF);
                 _mm256_store_si256(pvHStore + i, vH);
-#ifdef PARASAIL_TRACE
-                {
-                    __m256i vT;
-                    __m256i case1;
-                    __m256i case2;
-                    __m256i cond;
-                    vHp = _mm256_add_epi32(vHp, _mm256_load_si256(vP + i));
-                    vHp = _mm256_max_epi32(vHp, vZero);
-                    case1 = _mm256_cmpeq_epi32(vH, vHp);
-                    case2 = _mm256_cmpeq_epi32(vH, vF);
-                    cond = _mm256_andnot_si256(case1,case2);
-                    vT = _mm256_load_si256(pvHT + i);
-                    vT = _mm256_blendv_epi8(vT, vTDel, cond);
-                    _mm256_store_si256(pvHT + i, vT);
-                    arr_store(result->trace_table, vT, i, segLen, j, s2Len);
-                }
-#endif
 #ifdef PARASAIL_TABLE
                 arr_store(result->score_table, vH, i, segLen, j, s2Len);
 #endif
                 vMaxH = _mm256_max_epi32(vH, vMaxH);
-                /* Update vF value. */
-#ifdef PARASAIL_TRACE
-                {
-                    __m256i cond = _mm256_cmpgt_epi32(vEF_opn, vFa_ext);
-                    __m256i vT = _mm256_blendv_epi8(vTDel, vTDiag, cond);
-                    arr_store(result->trace_del_table, vT, i, segLen, j, s2Len);
-                }
-#endif
-                vEF_opn = _mm256_sub_epi32(vH, vGapO);
-                vF_ext = _mm256_sub_epi32(vF, vGapE);
-#ifdef PARASAIL_TRACE
-                {
-                    __m256i vET = _mm256_load_si256(pvET + i);
-                    __m256i vEa = _mm256_load_si256(pvEa + i);
-                    __m256i cond = _mm256_cmpgt_epi32(vEF_opn, vEa);
-                    vEa = _mm256_max_epi32(vEa, vEF_opn);
-                    _mm256_store_si256(pvEa + i, vEa);
-                    vET = _mm256_blendv_epi8(vET, vTDiag, cond);
-                    if (j+1<s2Len) {
-                        arr_store(result->trace_ins_table, vET, i, segLen, j+1, s2Len);
-                    }
-                }
-#endif
-                if (! _mm256_movemask_epi8(
-                            _mm256_or_si256(
-                                _mm256_cmpgt_epi32(vF_ext, vEF_opn),
-                                _mm256_cmpeq_epi32(vF_ext, vEF_opn))))
-                    goto end;
-                /*vF = _mm256_max_epi32(vEF_opn, vF_ext);*/
-                vF = vF_ext;
-#ifdef PARASAIL_TRACE
-                vFa_ext = _mm256_sub_epi32(vFa, vGapE);
-                vFa = _mm256_max_epi32(vEF_opn, vFa_ext);
-                vHp = _mm256_load_si256(pvHLoad + i);
-#endif
+                vH = _mm256_sub_epi32(vH, vGapO);
+                vF = _mm256_sub_epi32(vF, vGapE);
+                if (! _mm256_movemask_epi8(_mm256_cmpgt_epi32(vF, vH))) goto end;
+                /*vF = _mm256_max_epi32(vF, vH);*/
             }
         }
 end:
@@ -436,11 +299,6 @@ end:
     result->end_query = end_query;
     result->end_ref = end_ref;
 
-#ifdef PARASAIL_TRACE
-    parasail_free(pvEa);
-    parasail_free(pvET);
-    parasail_free(pvHT);
-#endif
     parasail_free(pvHMax);
     parasail_free(pvE);
     parasail_free(pvHLoad);

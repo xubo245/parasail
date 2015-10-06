@@ -11645,20 +11645,6 @@ parasail_result_t* parasail_sw_rowcol_blocked_sse41_128_16(
         const parasail_matrix_t* matrix);
 
 extern PARASAIL_API
-parasail_result_t* parasail_sw_trace_blocked_sse41_128_32(
-        const char * const restrict s1, const int s1Len,
-        const char * const restrict s2, const int s2Len,
-        const int open, const int gap,
-        const parasail_matrix_t* matrix);
-
-extern PARASAIL_API
-parasail_result_t* parasail_sw_trace_blocked_sse41_128_16(
-        const char * const restrict s1, const int s1Len,
-        const char * const restrict s2, const int s2Len,
-        const int open, const int gap,
-        const parasail_matrix_t* matrix);
-
-extern PARASAIL_API
 parasail_result_t* parasail_nw_scan_64(
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len,
