@@ -16,11 +16,14 @@
 #include "parasail/memory.h"
 #include "parasail/internal_%(ISA)s.h"
 
+#define SWAP(A,B) { %(VTYPE)s* tmp = A; A = B; B = tmp; }
+#define SWAP3(A,B,C) { %(VTYPE)s* tmp = A; A = B; B = C; C = tmp; }
+
 #define NEG_INF %(NEG_INF)s
 %(FIXES)s
 
-#ifdef PARASAIL_TABLE
-static inline void arr_store_si%(BITS)s(
+#if defined(PARASAIL_TABLE) || defined(PARASAIL_TRACE)
+static inline void arr_store(
         int *array,
         %(VTYPE)s vH,
         %(INDEX)s t,
@@ -89,15 +92,14 @@ parasail_result_t* PNAME(
     %(VTYPE)s* const restrict vProfile = (%(VTYPE)s*)profile->profile%(WIDTH)s.score;
     %(VTYPE)s* restrict pvHStore = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     %(VTYPE)s* restrict pvHLoad =  parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
-    %(VTYPE)s* restrict pvHMax = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     %(VTYPE)s* const restrict pvE = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
+    %(VTYPE)s* restrict pvHMax = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     %(VTYPE)s vGapO = %(VSET1)s(open);
     %(VTYPE)s vGapE = %(VSET1)s(gap);
     %(VTYPE)s vZero = %(VSET0)s();
-    %(VTYPE)s vNegInf = %(VSET1)s(NEG_INF);
     %(INT)s score = NEG_INF;
-    %(VTYPE)s vMaxH = vNegInf;
-    %(VTYPE)s vMaxHUnit = vNegInf;
+    %(VTYPE)s vMaxH = vZero;
+    %(VTYPE)s vMaxHUnit = vZero;
     %(INT)s maxp = INT%(WIDTH)s_MAX - (%(INT)s)(matrix->max+1);
     /*%(INT)s stop = profile->stop == INT32_MAX ?  INT%(WIDTH)s_MAX : (%(INT)s)profile->stop;*/
 #ifdef PARASAIL_TABLE
@@ -109,16 +111,30 @@ parasail_result_t* PNAME(
     const %(INDEX)s position = (segWidth - 1) - (s1Len - 1) / segLen;
 #else
 #ifdef PARASAIL_TRACE
+    %(VTYPE)s* const restrict pvHT = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
+    %(VTYPE)s* const restrict pvET = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
+    %(VTYPE)s* const restrict pvEa = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
+    %(VTYPE)s vTZero = %(VSET1)s(PARASAIL_ZERO);
+    %(VTYPE)s vTIns  = %(VSET1)s(PARASAIL_INS);
+    %(VTYPE)s vTDel  = %(VSET1)s(PARASAIL_DEL);
+    %(VTYPE)s vTDiag = %(VSET1)s(PARASAIL_DIAG);
 #else
     parasail_result_t *result = parasail_result_new();
 #endif
 #endif
 #endif
 
-    /* initialize H and E */
     parasail_memset_%(VTYPE)s(pvHStore, vZero, segLen);
     parasail_memset_%(VTYPE)s(pvE, %(VSET1)s(-open), segLen);
+
+#ifdef PARASAIL_TRACE
+    parasail_memset_%(VTYPE)s(pvEa, %(VSET1)s(-open), segLen);
+    for (i=0; i<segLen; ++i) {
+        arr_store(result->trace_ins_table,
+                vTDiag, i, segLen, 0, s2Len);
+    }
+#endif
 
     /* outer loop over database sequence */
     for (j=0; j<s2Len; ++j) {
@@ -130,11 +146,10 @@ parasail_result_t* PNAME(
         %(VTYPE)s vH;
         %(VTYPE)s vH_dag;
         const %(VTYPE)s* vP = NULL;
-        %(VTYPE)s* pv = NULL;
 
         /* Initialize F value to 0.  Any errors to vH values will be
          * corrected in the Lazy_F loop. */
-        vF = vZero;
+        vF = %(VSUB)s(vZero,vGapO);
 
         /* load final segment of pvHStore and shift left by %(BYTES)s bytes */
         vH = %(VLOAD)s(&pvHStore[segLen - 1]);
@@ -145,43 +160,75 @@ parasail_result_t* PNAME(
 
         if (end_ref == j-2) {
             /* Swap in the max buffer. */
-            pv = pvHMax;
-            pvHMax = pvHLoad;
-            pvHLoad = pvHStore;
-            pvHStore = pv;
+            SWAP3(pvHMax,  pvHLoad,  pvHStore)
         }
         else {
             /* Swap the 2 H buffers. */
-            pv = pvHLoad;
-            pvHLoad = pvHStore;
-            pvHStore = pv;
+            SWAP(pvHLoad,  pvHStore)
         }
 
         /* inner loop to process the query sequence */
         for (i=0; i<segLen; ++i) {
-            vH = %(VADD)s(vH, %(VLOAD)s(vP + i));
             vE = %(VLOAD)s(pvE + i);
 
             /* Get max from vH, vE and vF. */
-            vH = %(VMAX)s(vH, vE);
+            vH_dag = %(VADD)s(vH, %(VLOAD)s(vP + i));
+            vH_dag = %(VMAX)s(vH_dag, vZero);
+            vH = %(VMAX)s(vH_dag, vE);
             vH = %(VMAX)s(vH, vF);
-            vH = %(VMAX)s(vH, vZero);
             /* Save vH values. */
             %(VSTORE)s(pvHStore + i, vH);
+
+#ifdef PARASAIL_TRACE
+            {
+                %(VTYPE)s cond_zero = %(VCMPEQ)s(vH, vZero);
+                %(VTYPE)s case1 = %(VCMPEQ)s(vH, vH_dag);
+                %(VTYPE)s case2 = %(VCMPEQ)s(vH, vF);
+                %(VTYPE)s vT = %(VBLEND)s(
+                        %(VBLEND)s(vTIns, vTDel, case2),
+                        %(VBLEND)s(vTDiag, vTZero, cond_zero),
+                        case1);
+                %(VSTORE)s(pvHT + i, vT);
+                arr_store(result->trace_table, vT, i, segLen, j, s2Len);
+            }
+#endif
 #ifdef PARASAIL_TABLE
-            arr_store_si%(BITS)s(result->score_table, vH, i, segLen, j, s2Len);
+            arr_store(result->score_table, vH, i, segLen, j, s2Len);
 #endif
             vMaxH = %(VMAX)s(vH, vMaxH);
+            vEF_opn = %(VSUB)s(vH, vGapO);
 
             /* Update vE value. */
-            vH = %(VSUB)s(vH, vGapO);
-            vE = %(VSUB)s(vE, vGapE);
-            vE = %(VMAX)s(vE, vH);
+            vE_ext = %(VSUB)s(vE, vGapE);
+            vE = %(VMAX)s(vEF_opn, vE_ext);
             %(VSTORE)s(pvE + i, vE);
+#ifdef PARASAIL_TRACE
+            {
+                %(VTYPE)s vEa = %(VLOAD)s(pvEa + i);
+                %(VTYPE)s vEa_ext = %(VSUB)s(vEa, vGapE);
+                vEa = %(VMAX)s(vEF_opn, vEa_ext);
+                %(VSTORE)s(pvEa + i, vEa);
+                if (j+1<s2Len) {
+                    %(VTYPE)s cond = %(VCMPGT)s(vEF_opn, vEa_ext);
+                    %(VTYPE)s vT = %(VBLEND)s(vTIns, vTDiag, cond);
+                    %(VSTORE)s(pvET + i, vT);
+                    arr_store(result->trace_ins_table, vT, i, segLen, j+1, s2Len);
+                }
+            }
+#endif
 
             /* Update vF value. */
-            vF = %(VSUB)s(vF, vGapE);
-            vF = %(VMAX)s(vF, vH);
+            vF_ext = %(VSUB)s(vF, vGapE);
+            vF = %(VMAX)s(vEF_opn, vF_ext);
+#ifdef PARASAIL_TRACE
+            {
+                %(VTYPE)s cond = %(VCMPGT)s(vEF_opn, vF_ext);
+                %(VTYPE)s vT = %(VBLEND)s(vTDel, vTDiag, cond);
+                if (i+1<segLen) {
+                    arr_store(result->trace_del_table, vT, i+1, segLen, j, s2Len);
+                }
+            }
+#endif
 
             /* Load the next vH. */
             vH = %(VLOAD)s(pvHLoad + i);
@@ -190,19 +237,82 @@ parasail_result_t* PNAME(
         /* Lazy_F loop: has been revised to disallow adjecent insertion and
          * then deletion, so don't update E(i, i), learn from SWPS3 */
         for (k=0; k<segWidth; ++k) {
+#ifdef PARASAIL_TRACE
+            %(VTYPE)s vFa;
+            %(VTYPE)s vFa_ext;
+            %(VTYPE)s vHp = %(VLOAD)s(&pvHLoad[segLen - 1]);
+            vHp = %(VSHIFT)s(vHp, %(BYTES)s);
+            vEF_opn = %(VSHIFT)s(vEF_opn, %(BYTES)s);
+            vEF_opn = %(VINSERT)s(vEF_opn, -open, 0);
+            vF_ext = %(VSHIFT)s(vF_ext, %(BYTES)s);
+            vF_ext = %(VINSERT)s(vF_ext, NEG_INF, 0);
+            vFa_ext = vF_ext;
+#endif
             vF = %(VSHIFT)s(vF, %(BYTES)s);
+            vF = %(VINSERT)s(vF, -open, 0);
+#ifdef PARASAIL_TRACE
+            vFa = vF;
+#endif
             for (i=0; i<segLen; ++i) {
                 vH = %(VLOAD)s(pvHStore + i);
                 vH = %(VMAX)s(vH,vF);
                 %(VSTORE)s(pvHStore + i, vH);
+#ifdef PARASAIL_TRACE
+                {
+                    %(VTYPE)s vT;
+                    %(VTYPE)s case1;
+                    %(VTYPE)s case2;
+                    %(VTYPE)s cond;
+                    vHp = %(VADD)s(vHp, %(VLOAD)s(vP + i));
+                    vHp = %(VMAX)s(vHp, vZero);
+                    case1 = %(VCMPEQ)s(vH, vHp);
+                    case2 = %(VCMPEQ)s(vH, vF);
+                    cond = %(VANDNOT)s(case1,case2);
+                    vT = %(VLOAD)s(pvHT + i);
+                    vT = %(VBLEND)s(vT, vTDel, cond);
+                    %(VSTORE)s(pvHT + i, vT);
+                    arr_store(result->trace_table, vT, i, segLen, j, s2Len);
+                }
+#endif
 #ifdef PARASAIL_TABLE
-                arr_store_si%(BITS)s(result->score_table, vH, i, segLen, j, s2Len);
+                arr_store(result->score_table, vH, i, segLen, j, s2Len);
 #endif
                 vMaxH = %(VMAX)s(vH, vMaxH);
-                vH = %(VSUB)s(vH, vGapO);
-                vF = %(VSUB)s(vF, vGapE);
-                if (! %(VMOVEMASK)s(%(VCMPGT)s(vF, vH))) goto end;
-                /*vF = %(VMAX)s(vF, vH);*/
+                /* Update vF value. */
+#ifdef PARASAIL_TRACE
+                {
+                    %(VTYPE)s cond = %(VCMPGT)s(vEF_opn, vFa_ext);
+                    %(VTYPE)s vT = %(VBLEND)s(vTDel, vTDiag, cond);
+                    arr_store(result->trace_del_table, vT, i, segLen, j, s2Len);
+                }
+#endif
+                vEF_opn = %(VSUB)s(vH, vGapO);
+                vF_ext = %(VSUB)s(vF, vGapE);
+#ifdef PARASAIL_TRACE
+                {
+                    %(VTYPE)s vET = %(VLOAD)s(pvET + i);
+                    %(VTYPE)s vEa = %(VLOAD)s(pvEa + i);
+                    %(VTYPE)s cond = %(VCMPGT)s(vEF_opn, vEa);
+                    vEa = %(VMAX)s(vEa, vEF_opn);
+                    %(VSTORE)s(pvEa + i, vEa);
+                    vET = %(VBLEND)s(vET, vTDiag, cond);
+                    if (j+1<s2Len) {
+                        arr_store(result->trace_ins_table, vET, i, segLen, j+1, s2Len);
+                    }
+                }
+#endif
+                if (! %(VMOVEMASK)s(
+                            %(VOR)s(
+                                %(VCMPGT)s(vF_ext, vEF_opn),
+                                %(VCMPEQ)s(vF_ext, vEF_opn))))
+                    goto end;
+                /*vF = %(VMAX)s(vEF_opn, vF_ext);*/
+                vF = vF_ext;
+#ifdef PARASAIL_TRACE
+                vFa_ext = %(VSUB)s(vFa, vGapE);
+                vFa = %(VMAX)s(vEF_opn, vFa_ext);
+                vHp = %(VLOAD)s(pvHLoad + i);
+#endif
             }
         }
 end:
@@ -249,22 +359,18 @@ end:
     }
 
     if (result->saturated) {
-        score = INT%(WIDTH)s_MAX;
+        score = 0;
         end_query = 0;
         end_ref = 0;
     }
     else {
         if (end_ref == j-1) {
             /* end_ref was the last store column */
-            %(VTYPE)s *pv = pvHMax;
-            pvHMax = pvHStore;
-            pvHStore = pv;
+            SWAP(pvHMax,  pvHStore)
         }
         else if (end_ref == j-2) {
             /* end_ref was the last load column */
-            %(VTYPE)s *pv = pvHMax;
-            pvHMax = pvHLoad;
-            pvHLoad = pv;
+            SWAP(pvHMax,  pvHLoad)
         }
         /* Trace the alignment ending position on read. */
         {
@@ -286,8 +392,13 @@ end:
     result->end_query = end_query;
     result->end_ref = end_ref;
 
-    parasail_free(pvE);
+#ifdef PARASAIL_TRACE
+    parasail_free(pvEa);
+    parasail_free(pvET);
+    parasail_free(pvHT);
+#endif
     parasail_free(pvHMax);
+    parasail_free(pvE);
     parasail_free(pvHLoad);
     parasail_free(pvHStore);
 
