@@ -120,6 +120,9 @@ parasail_result_t* PNAME(
     __m128i* restrict pvHStore = parasail_memalign___m128i(16, segLen);
     __m128i* restrict pvHLoad =  parasail_memalign___m128i(16, segLen);
     __m128i* const restrict pvE = parasail_memalign___m128i(16, segLen);
+    __m128i* restrict pvEaStore = parasail_memalign___m128i(16, segLen);
+    __m128i* restrict pvEaLoad = parasail_memalign___m128i(16, segLen);
+    __m128i* const restrict pvHT = parasail_memalign___m128i(16, segLen);
     __m128i* restrict pvHMax = parasail_memalign___m128i(16, segLen);
     __m128i vGapO = _mm_set1_epi64x(open);
     __m128i vGapE = _mm_set1_epi64x(gap);
@@ -129,19 +132,17 @@ parasail_result_t* PNAME(
     __m128i vMaxHUnit = vZero;
     int64_t maxp = INT64_MAX - (int64_t)(matrix->max+1);
     /*int64_t stop = profile->stop == INT32_MAX ?  INT64_MAX : (int64_t)profile->stop;*/
-    __m128i* const restrict pvHT = parasail_memalign___m128i(16, segLen);
-    __m128i* const restrict pvET = parasail_memalign___m128i(16, segLen);
-    __m128i* const restrict pvEa = parasail_memalign___m128i(16, segLen);
     parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
     __m128i vTZero = _mm_set1_epi64x(PARASAIL_ZERO);
     __m128i vTIns  = _mm_set1_epi64x(PARASAIL_INS);
     __m128i vTDel  = _mm_set1_epi64x(PARASAIL_DEL);
     __m128i vTDiag = _mm_set1_epi64x(PARASAIL_DIAG);
 
+    /* initialize H and E */
     parasail_memset___m128i(pvHStore, vZero, segLen);
     parasail_memset___m128i(pvE, _mm_set1_epi64x(-open), segLen);
+    parasail_memset___m128i(pvEaStore, _mm_set1_epi64x(-open), segLen);
 
-    parasail_memset___m128i(pvEa, _mm_set1_epi64x(-open), segLen);
     for (i=0; i<segLen; ++i) {
         arr_store(result->trace_ins_table,
                 vTDiag, i, segLen, 0, s2Len);
@@ -154,6 +155,8 @@ parasail_result_t* PNAME(
         __m128i vE_ext;
         __m128i vF;
         __m128i vF_ext;
+        __m128i vFa;
+        __m128i vFa_ext;
         __m128i vH;
         __m128i vH_dag;
         const __m128i* vP = NULL;
@@ -172,10 +175,12 @@ parasail_result_t* PNAME(
         if (end_ref == j-2) {
             /* Swap in the max buffer. */
             SWAP3(pvHMax,  pvHLoad,  pvHStore)
+            SWAP(pvEaLoad,  pvEaStore)
         }
         else {
             /* Swap the 2 H buffers. */
             SWAP(pvHLoad,  pvHStore)
+            SWAP(pvEaLoad,  pvEaStore)
         }
 
         /* inner loop to process the query sequence */
@@ -209,14 +214,13 @@ parasail_result_t* PNAME(
             vE = _mm_max_epi64_rpl(vEF_opn, vE_ext);
             _mm_store_si128(pvE + i, vE);
             {
-                __m128i vEa = _mm_load_si128(pvEa + i);
+                __m128i vEa = _mm_load_si128(pvEaLoad + i);
                 __m128i vEa_ext = _mm_sub_epi64(vEa, vGapE);
                 vEa = _mm_max_epi64_rpl(vEF_opn, vEa_ext);
-                _mm_store_si128(pvEa + i, vEa);
+                _mm_store_si128(pvEaStore + i, vEa);
                 if (j+1<s2Len) {
                     __m128i cond = _mm_cmpgt_epi64_rpl(vEF_opn, vEa_ext);
                     __m128i vT = _mm_blendv_epi8_rpl(vTIns, vTDiag, cond);
-                    _mm_store_si128(pvET + i, vT);
                     arr_store(result->trace_ins_table, vT, i, segLen, j+1, s2Len);
                 }
             }
@@ -238,19 +242,21 @@ parasail_result_t* PNAME(
 
         /* Lazy_F loop: has been revised to disallow adjecent insertion and
          * then deletion, so don't update E(i, i), learn from SWPS3 */
+        vFa_ext = vF_ext;
+        vFa = vF;
         for (k=0; k<segWidth; ++k) {
-            __m128i vFa;
-            __m128i vFa_ext;
             __m128i vHp = _mm_load_si128(&pvHLoad[segLen - 1]);
             vHp = _mm_slli_si128(vHp, 8);
             vEF_opn = _mm_slli_si128(vEF_opn, 8);
             vEF_opn = _mm_insert_epi64_rpl(vEF_opn, -open, 0);
             vF_ext = _mm_slli_si128(vF_ext, 8);
             vF_ext = _mm_insert_epi64_rpl(vF_ext, NEG_INF, 0);
-            vFa_ext = vF_ext;
             vF = _mm_slli_si128(vF, 8);
             vF = _mm_insert_epi64_rpl(vF, -open, 0);
-            vFa = vF;
+            vFa_ext = _mm_slli_si128(vFa_ext, 8);
+            vFa_ext = _mm_insert_epi64_rpl(vFa_ext, NEG_INF, 0);
+            vFa = _mm_slli_si128(vFa, 8);
+            vFa = _mm_insert_epi64_rpl(vFa, -open, 0);
             for (i=0; i<segLen; ++i) {
                 vH = _mm_load_si128(pvHStore + i);
                 vH = _mm_max_epi64_rpl(vH,vF);
@@ -280,14 +286,16 @@ parasail_result_t* PNAME(
                 vEF_opn = _mm_sub_epi64(vH, vGapO);
                 vF_ext = _mm_sub_epi64(vF, vGapE);
                 {
-                    __m128i vET = _mm_load_si128(pvET + i);
-                    __m128i vEa = _mm_load_si128(pvEa + i);
-                    __m128i cond = _mm_cmpgt_epi64_rpl(vEF_opn, vEa);
-                    vEa = _mm_max_epi64_rpl(vEa, vEF_opn);
-                    _mm_store_si128(pvEa + i, vEa);
-                    vET = _mm_blendv_epi8_rpl(vET, vTDiag, cond);
+                    __m128i vT;
+                    __m128i cond;
+                    __m128i vEa = _mm_load_si128(pvEaLoad + i);
+                    __m128i vEa_ext = _mm_sub_epi64(vEa, vGapE);
+                    vEa = _mm_max_epi64_rpl(vEF_opn, vEa_ext);
+                    _mm_store_si128(pvEaStore + i, vEa);
+                    cond = _mm_cmpgt_epi64_rpl(vEF_opn, vEa_ext);
+                    vT = _mm_blendv_epi8_rpl(vTIns, vTDiag, cond);
                     if (j+1<s2Len) {
-                        arr_store(result->trace_ins_table, vET, i, segLen, j+1, s2Len);
+                        arr_store(result->trace_ins_table, vT, i, segLen, j+1, s2Len);
                     }
                 }
                 if (! _mm_movemask_epi8(
@@ -361,10 +369,10 @@ end:
     result->end_query = end_query;
     result->end_ref = end_ref;
 
-    parasail_free(pvEa);
-    parasail_free(pvET);
-    parasail_free(pvHT);
     parasail_free(pvHMax);
+    parasail_free(pvHT);
+    parasail_free(pvEaLoad);
+    parasail_free(pvEaStore);
     parasail_free(pvE);
     parasail_free(pvHLoad);
     parasail_free(pvHStore);

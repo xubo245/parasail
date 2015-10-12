@@ -65,6 +65,9 @@ parasail_result_t* PNAME(
     %(VTYPE)s* restrict pvHStore = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     %(VTYPE)s* restrict pvHLoad =  parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     %(VTYPE)s* const restrict pvE = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
+    %(VTYPE)s* restrict pvEaStore = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
+    %(VTYPE)s* restrict pvEaLoad = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
+    %(VTYPE)s* const restrict pvHT = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     %(VTYPE)s* restrict pvHMax = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     %(VTYPE)s vGapO = %(VSET1)s(open);
     %(VTYPE)s vGapE = %(VSET1)s(gap);
@@ -74,19 +77,17 @@ parasail_result_t* PNAME(
     %(VTYPE)s vMaxHUnit = vZero;
     %(INT)s maxp = INT%(WIDTH)s_MAX - (%(INT)s)(matrix->max+1);
     /*%(INT)s stop = profile->stop == INT32_MAX ?  INT%(WIDTH)s_MAX : (%(INT)s)profile->stop;*/
-    %(VTYPE)s* const restrict pvHT = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
-    %(VTYPE)s* const restrict pvET = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
-    %(VTYPE)s* const restrict pvEa = parasail_memalign_%(VTYPE)s(%(ALIGNMENT)s, segLen);
     parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
     %(VTYPE)s vTZero = %(VSET1)s(PARASAIL_ZERO);
     %(VTYPE)s vTIns  = %(VSET1)s(PARASAIL_INS);
     %(VTYPE)s vTDel  = %(VSET1)s(PARASAIL_DEL);
     %(VTYPE)s vTDiag = %(VSET1)s(PARASAIL_DIAG);
 
+    /* initialize H and E */
     parasail_memset_%(VTYPE)s(pvHStore, vZero, segLen);
     parasail_memset_%(VTYPE)s(pvE, %(VSET1)s(-open), segLen);
+    parasail_memset_%(VTYPE)s(pvEaStore, %(VSET1)s(-open), segLen);
 
-    parasail_memset_%(VTYPE)s(pvEa, %(VSET1)s(-open), segLen);
     for (i=0; i<segLen; ++i) {
         arr_store(result->trace_ins_table,
                 vTDiag, i, segLen, 0, s2Len);
@@ -99,6 +100,8 @@ parasail_result_t* PNAME(
         %(VTYPE)s vE_ext;
         %(VTYPE)s vF;
         %(VTYPE)s vF_ext;
+        %(VTYPE)s vFa;
+        %(VTYPE)s vFa_ext;
         %(VTYPE)s vH;
         %(VTYPE)s vH_dag;
         const %(VTYPE)s* vP = NULL;
@@ -117,10 +120,12 @@ parasail_result_t* PNAME(
         if (end_ref == j-2) {
             /* Swap in the max buffer. */
             SWAP3(pvHMax,  pvHLoad,  pvHStore)
+            SWAP(pvEaLoad,  pvEaStore)
         }
         else {
             /* Swap the 2 H buffers. */
             SWAP(pvHLoad,  pvHStore)
+            SWAP(pvEaLoad,  pvEaStore)
         }
 
         /* inner loop to process the query sequence */
@@ -154,14 +159,13 @@ parasail_result_t* PNAME(
             vE = %(VMAX)s(vEF_opn, vE_ext);
             %(VSTORE)s(pvE + i, vE);
             {
-                %(VTYPE)s vEa = %(VLOAD)s(pvEa + i);
+                %(VTYPE)s vEa = %(VLOAD)s(pvEaLoad + i);
                 %(VTYPE)s vEa_ext = %(VSUB)s(vEa, vGapE);
                 vEa = %(VMAX)s(vEF_opn, vEa_ext);
-                %(VSTORE)s(pvEa + i, vEa);
+                %(VSTORE)s(pvEaStore + i, vEa);
                 if (j+1<s2Len) {
                     %(VTYPE)s cond = %(VCMPGT)s(vEF_opn, vEa_ext);
                     %(VTYPE)s vT = %(VBLEND)s(vTIns, vTDiag, cond);
-                    %(VSTORE)s(pvET + i, vT);
                     arr_store(result->trace_ins_table, vT, i, segLen, j+1, s2Len);
                 }
             }
@@ -183,19 +187,21 @@ parasail_result_t* PNAME(
 
         /* Lazy_F loop: has been revised to disallow adjecent insertion and
          * then deletion, so don't update E(i, i), learn from SWPS3 */
+        vFa_ext = vF_ext;
+        vFa = vF;
         for (k=0; k<segWidth; ++k) {
-            %(VTYPE)s vFa;
-            %(VTYPE)s vFa_ext;
             %(VTYPE)s vHp = %(VLOAD)s(&pvHLoad[segLen - 1]);
             vHp = %(VSHIFT)s(vHp, %(BYTES)s);
             vEF_opn = %(VSHIFT)s(vEF_opn, %(BYTES)s);
             vEF_opn = %(VINSERT)s(vEF_opn, -open, 0);
             vF_ext = %(VSHIFT)s(vF_ext, %(BYTES)s);
             vF_ext = %(VINSERT)s(vF_ext, NEG_INF, 0);
-            vFa_ext = vF_ext;
             vF = %(VSHIFT)s(vF, %(BYTES)s);
             vF = %(VINSERT)s(vF, -open, 0);
-            vFa = vF;
+            vFa_ext = %(VSHIFT)s(vFa_ext, %(BYTES)s);
+            vFa_ext = %(VINSERT)s(vFa_ext, NEG_INF, 0);
+            vFa = %(VSHIFT)s(vFa, %(BYTES)s);
+            vFa = %(VINSERT)s(vFa, -open, 0);
             for (i=0; i<segLen; ++i) {
                 vH = %(VLOAD)s(pvHStore + i);
                 vH = %(VMAX)s(vH,vF);
@@ -225,14 +231,16 @@ parasail_result_t* PNAME(
                 vEF_opn = %(VSUB)s(vH, vGapO);
                 vF_ext = %(VSUB)s(vF, vGapE);
                 {
-                    %(VTYPE)s vET = %(VLOAD)s(pvET + i);
-                    %(VTYPE)s vEa = %(VLOAD)s(pvEa + i);
-                    %(VTYPE)s cond = %(VCMPGT)s(vEF_opn, vEa);
-                    vEa = %(VMAX)s(vEa, vEF_opn);
-                    %(VSTORE)s(pvEa + i, vEa);
-                    vET = %(VBLEND)s(vET, vTDiag, cond);
+                    %(VTYPE)s vT;
+                    %(VTYPE)s cond;
+                    %(VTYPE)s vEa = %(VLOAD)s(pvEaLoad + i);
+                    %(VTYPE)s vEa_ext = %(VSUB)s(vEa, vGapE);
+                    vEa = %(VMAX)s(vEF_opn, vEa_ext);
+                    %(VSTORE)s(pvEaStore + i, vEa);
+                    cond = %(VCMPGT)s(vEF_opn, vEa_ext);
+                    vT = %(VBLEND)s(vTIns, vTDiag, cond);
                     if (j+1<s2Len) {
-                        arr_store(result->trace_ins_table, vET, i, segLen, j+1, s2Len);
+                        arr_store(result->trace_ins_table, vT, i, segLen, j+1, s2Len);
                     }
                 }
                 if (! %(VMOVEMASK)s(
@@ -306,10 +314,10 @@ end:
     result->end_query = end_query;
     result->end_ref = end_ref;
 
-    parasail_free(pvEa);
-    parasail_free(pvET);
-    parasail_free(pvHT);
     parasail_free(pvHMax);
+    parasail_free(pvHT);
+    parasail_free(pvEaLoad);
+    parasail_free(pvEaStore);
     parasail_free(pvE);
     parasail_free(pvHLoad);
     parasail_free(pvHStore);

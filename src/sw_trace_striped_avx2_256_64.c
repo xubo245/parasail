@@ -109,6 +109,9 @@ parasail_result_t* PNAME(
     __m256i* restrict pvHStore = parasail_memalign___m256i(32, segLen);
     __m256i* restrict pvHLoad =  parasail_memalign___m256i(32, segLen);
     __m256i* const restrict pvE = parasail_memalign___m256i(32, segLen);
+    __m256i* restrict pvEaStore = parasail_memalign___m256i(32, segLen);
+    __m256i* restrict pvEaLoad = parasail_memalign___m256i(32, segLen);
+    __m256i* const restrict pvHT = parasail_memalign___m256i(32, segLen);
     __m256i* restrict pvHMax = parasail_memalign___m256i(32, segLen);
     __m256i vGapO = _mm256_set1_epi64x(open);
     __m256i vGapE = _mm256_set1_epi64x(gap);
@@ -118,19 +121,17 @@ parasail_result_t* PNAME(
     __m256i vMaxHUnit = vZero;
     int64_t maxp = INT64_MAX - (int64_t)(matrix->max+1);
     /*int64_t stop = profile->stop == INT32_MAX ?  INT64_MAX : (int64_t)profile->stop;*/
-    __m256i* const restrict pvHT = parasail_memalign___m256i(32, segLen);
-    __m256i* const restrict pvET = parasail_memalign___m256i(32, segLen);
-    __m256i* const restrict pvEa = parasail_memalign___m256i(32, segLen);
     parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
     __m256i vTZero = _mm256_set1_epi64x(PARASAIL_ZERO);
     __m256i vTIns  = _mm256_set1_epi64x(PARASAIL_INS);
     __m256i vTDel  = _mm256_set1_epi64x(PARASAIL_DEL);
     __m256i vTDiag = _mm256_set1_epi64x(PARASAIL_DIAG);
 
+    /* initialize H and E */
     parasail_memset___m256i(pvHStore, vZero, segLen);
     parasail_memset___m256i(pvE, _mm256_set1_epi64x(-open), segLen);
+    parasail_memset___m256i(pvEaStore, _mm256_set1_epi64x(-open), segLen);
 
-    parasail_memset___m256i(pvEa, _mm256_set1_epi64x(-open), segLen);
     for (i=0; i<segLen; ++i) {
         arr_store(result->trace_ins_table,
                 vTDiag, i, segLen, 0, s2Len);
@@ -143,6 +144,8 @@ parasail_result_t* PNAME(
         __m256i vE_ext;
         __m256i vF;
         __m256i vF_ext;
+        __m256i vFa;
+        __m256i vFa_ext;
         __m256i vH;
         __m256i vH_dag;
         const __m256i* vP = NULL;
@@ -161,10 +164,12 @@ parasail_result_t* PNAME(
         if (end_ref == j-2) {
             /* Swap in the max buffer. */
             SWAP3(pvHMax,  pvHLoad,  pvHStore)
+            SWAP(pvEaLoad,  pvEaStore)
         }
         else {
             /* Swap the 2 H buffers. */
             SWAP(pvHLoad,  pvHStore)
+            SWAP(pvEaLoad,  pvEaStore)
         }
 
         /* inner loop to process the query sequence */
@@ -198,14 +203,13 @@ parasail_result_t* PNAME(
             vE = _mm256_max_epi64_rpl(vEF_opn, vE_ext);
             _mm256_store_si256(pvE + i, vE);
             {
-                __m256i vEa = _mm256_load_si256(pvEa + i);
+                __m256i vEa = _mm256_load_si256(pvEaLoad + i);
                 __m256i vEa_ext = _mm256_sub_epi64(vEa, vGapE);
                 vEa = _mm256_max_epi64_rpl(vEF_opn, vEa_ext);
-                _mm256_store_si256(pvEa + i, vEa);
+                _mm256_store_si256(pvEaStore + i, vEa);
                 if (j+1<s2Len) {
                     __m256i cond = _mm256_cmpgt_epi64(vEF_opn, vEa_ext);
                     __m256i vT = _mm256_blendv_epi8(vTIns, vTDiag, cond);
-                    _mm256_store_si256(pvET + i, vT);
                     arr_store(result->trace_ins_table, vT, i, segLen, j+1, s2Len);
                 }
             }
@@ -227,19 +231,21 @@ parasail_result_t* PNAME(
 
         /* Lazy_F loop: has been revised to disallow adjecent insertion and
          * then deletion, so don't update E(i, i), learn from SWPS3 */
+        vFa_ext = vF_ext;
+        vFa = vF;
         for (k=0; k<segWidth; ++k) {
-            __m256i vFa;
-            __m256i vFa_ext;
             __m256i vHp = _mm256_load_si256(&pvHLoad[segLen - 1]);
             vHp = _mm256_slli_si256_rpl(vHp, 8);
             vEF_opn = _mm256_slli_si256_rpl(vEF_opn, 8);
             vEF_opn = _mm256_insert_epi64_rpl(vEF_opn, -open, 0);
             vF_ext = _mm256_slli_si256_rpl(vF_ext, 8);
             vF_ext = _mm256_insert_epi64_rpl(vF_ext, NEG_INF, 0);
-            vFa_ext = vF_ext;
             vF = _mm256_slli_si256_rpl(vF, 8);
             vF = _mm256_insert_epi64_rpl(vF, -open, 0);
-            vFa = vF;
+            vFa_ext = _mm256_slli_si256_rpl(vFa_ext, 8);
+            vFa_ext = _mm256_insert_epi64_rpl(vFa_ext, NEG_INF, 0);
+            vFa = _mm256_slli_si256_rpl(vFa, 8);
+            vFa = _mm256_insert_epi64_rpl(vFa, -open, 0);
             for (i=0; i<segLen; ++i) {
                 vH = _mm256_load_si256(pvHStore + i);
                 vH = _mm256_max_epi64_rpl(vH,vF);
@@ -269,14 +275,16 @@ parasail_result_t* PNAME(
                 vEF_opn = _mm256_sub_epi64(vH, vGapO);
                 vF_ext = _mm256_sub_epi64(vF, vGapE);
                 {
-                    __m256i vET = _mm256_load_si256(pvET + i);
-                    __m256i vEa = _mm256_load_si256(pvEa + i);
-                    __m256i cond = _mm256_cmpgt_epi64(vEF_opn, vEa);
-                    vEa = _mm256_max_epi64_rpl(vEa, vEF_opn);
-                    _mm256_store_si256(pvEa + i, vEa);
-                    vET = _mm256_blendv_epi8(vET, vTDiag, cond);
+                    __m256i vT;
+                    __m256i cond;
+                    __m256i vEa = _mm256_load_si256(pvEaLoad + i);
+                    __m256i vEa_ext = _mm256_sub_epi64(vEa, vGapE);
+                    vEa = _mm256_max_epi64_rpl(vEF_opn, vEa_ext);
+                    _mm256_store_si256(pvEaStore + i, vEa);
+                    cond = _mm256_cmpgt_epi64(vEF_opn, vEa_ext);
+                    vT = _mm256_blendv_epi8(vTIns, vTDiag, cond);
                     if (j+1<s2Len) {
-                        arr_store(result->trace_ins_table, vET, i, segLen, j+1, s2Len);
+                        arr_store(result->trace_ins_table, vT, i, segLen, j+1, s2Len);
                     }
                 }
                 if (! _mm256_movemask_epi8(
@@ -350,10 +358,10 @@ end:
     result->end_query = end_query;
     result->end_ref = end_ref;
 
-    parasail_free(pvEa);
-    parasail_free(pvET);
-    parasail_free(pvHT);
     parasail_free(pvHMax);
+    parasail_free(pvHT);
+    parasail_free(pvEaLoad);
+    parasail_free(pvEaStore);
     parasail_free(pvE);
     parasail_free(pvHLoad);
     parasail_free(pvHStore);
