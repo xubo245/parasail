@@ -32,6 +32,14 @@ static void traceback_sg(
         const parasail_matrix_t *matrix,
         parasail_result_t *result);
 
+static void traceback_sg_striped_128_16(
+        const char *seqA, 
+        int lena,
+        const char *seqB,
+        int lenb, 
+        const parasail_matrix_t *matrix,
+        parasail_result_t *result);
+
 static inline int weight(const char a, const char b, const parasail_matrix_t *matrix)
 {
     return matrix->matrix[matrix->mapper[a]*matrix->size + matrix->mapper[b]];
@@ -334,10 +342,17 @@ int main(int argc, char **argv)
         traceback_sw(seqA, lena, seqB, lenb, matrix, result);
     }
     else if (NULL != strstr(funcname, "sg_")) {
-        traceback_sg(seqA, lena, seqB, lenb, matrix, result);
+        if (NULL != strstr(funcname, "128_16")) {
+            traceback_sg_striped_128_16(seqA, lena, seqB, lenb, matrix, result);
+        }
+        else {
+            //traceback_sg(seqA, lena, seqB, lenb, matrix, result);
+            traceback_sw(seqA, lena, seqB, lenb, matrix, result);
+        }
     }
     else if (NULL != strstr(funcname, "nw_")) {
-        traceback_sg(seqA, lena, seqB, lenb, matrix, result);
+        //traceback_sg(seqA, lena, seqB, lenb, matrix, result);
+        traceback_sw(seqA, lena, seqB, lenb, matrix, result);
     }
     else {
         assert(0);
@@ -535,6 +550,7 @@ static void traceback_sg(
     int where = PARASAIL_DIAG;
     while (i >= 0 && j >= 0) {
         int loc = i*lenb + j;
+        //printf("reg i=%d j=%d loc=%d\n", i, j, loc);
         assert(i >= 0 && j >= 0);
         if (PARASAIL_DIAG == where) {
             if (result->trace_table[loc] == PARASAIL_DIAG) {
@@ -580,6 +596,135 @@ static void traceback_sg(
                 where = PARASAIL_DIAG;
             }
             else if (result->trace_del_table[loc] == PARASAIL_DEL) {
+                where = PARASAIL_DEL;
+            }
+            else {
+                assert(0);
+            }
+        }
+        else {
+            assert(0);
+        }
+    }
+    *(qc++) = '\0';
+    *(dc++) = '\0';
+    *(ac++) = '\0';
+
+    if (1) {
+        int mch = 0;
+        int sim = 0;
+        int gap = 0;
+        int len = strlen(a);
+        char *tmp = NULL;
+        tmp = parasail_reverse(q, strlen(q));
+        printf("%s\n", tmp);
+        free(tmp);
+        tmp = parasail_reverse(a, len);
+        printf("%s\n", tmp);
+        for (i=0; i<len; ++i) {
+            if (tmp[i] == '|') { ++mch; ++sim; }
+            else if (tmp[i] == ':') ++sim;
+            else if (tmp[i] == '.') ;
+            else if (tmp[i] == ' ') ++gap;
+            else {
+                printf("bad char in traceback '%c'\n", tmp[i]);
+                assert(0);
+            }
+        }
+        free(tmp);
+        tmp = parasail_reverse(d, strlen(d));
+        printf("%s\n", tmp);
+        free(tmp);
+        printf("Length:        %d\n", len);
+        printf("Identity:   %d/%d\n", mch, len);
+        printf("Similarity: %d/%d\n", sim, len);
+        printf("Gaps:       %d/%d\n", gap, len);
+    }
+    else {
+        printf("%s\n", q);
+        printf("%s\n", a);
+        printf("%s\n", d);
+    }
+
+    free(q);
+    free(d);
+    free(a);
+}
+
+static void traceback_sg_striped_128_16(
+        const char *seqA, 
+        int lena,
+        const char *seqB,
+        int lenb, 
+        const parasail_matrix_t *matrix,
+        parasail_result_t *result)
+{
+    char *q = malloc(sizeof(char)*lena+lenb);
+    char *d = malloc(sizeof(char)*lena+lenb);
+    char *a = malloc(sizeof(char)*lena+lenb);
+    char *qc = q;
+    char *dc = d;
+    char *ac = a;
+    int i = result->end_query;
+    int j = result->end_ref;
+    const int32_t segWidth = 8;
+    const int32_t segLen = (lena + segWidth - 1) / segWidth;
+    int16_t *HT = (int16_t*)result->trace_table;
+    int16_t *ET = (int16_t*)result->trace_ins_table;
+    int16_t *FT = (int16_t*)result->trace_del_table;
+    int where = PARASAIL_DIAG;
+    while (i >= 0 && j >= 0) {
+        //int loc = i*lenb + j;
+        //int loc = j*segLen + (i%segLen)*segWidth + (segWidth-1-i/segLen);
+        //int loc = j*segLen*segWidth + (i%segLen)*segWidth + (segWidth-1-i/segLen);
+        int loc = j*segLen*segWidth + (i%segLen)*segWidth + (i/segLen);
+        //int loc = j*segLen*segWidth + i/segWidth + i%segWidth*segLen;
+        //printf("str i=%d j=%d loc=%d\n", i, j, loc);
+        assert(i >= 0 && j >= 0);
+        if (PARASAIL_DIAG == where) {
+            if (HT[loc] == PARASAIL_DIAG) {
+                *(qc++) = seqA[i];
+                *(dc++) = seqB[j];
+                *(ac++) = match_char(seqA[i], seqB[j], matrix);
+                --i;
+                --j;
+            }
+            else if (HT[loc] == PARASAIL_INS) {
+                where = PARASAIL_INS;
+            }
+            else if (HT[loc] == PARASAIL_DEL) {
+                where = PARASAIL_DEL;
+            }
+            else {
+                fprintf(stderr,
+                        "unknown trace value: %d\n", HT[loc]);
+                assert(0);
+            }
+        }
+        else if (PARASAIL_INS == where) {
+            *(qc++) = '-';
+            *(dc++) = seqB[j];
+            *(ac++) = ' ';
+            --j;
+            if (ET[loc] == PARASAIL_DIAG) {
+                where = PARASAIL_DIAG;
+            }
+            else if (ET[loc] == PARASAIL_INS) {
+                where = PARASAIL_INS;
+            }
+            else {
+                assert(0);
+            }
+        }
+        else if (PARASAIL_DEL == where) {
+            *(qc++) = seqA[i];
+            *(dc++) = '-';
+            *(ac++) = ' ';
+            --i;
+            if (FT[loc] == PARASAIL_DIAG) {
+                where = PARASAIL_DIAG;
+            }
+            else if (FT[loc] == PARASAIL_DEL) {
                 where = PARASAIL_DEL;
             }
             else {
