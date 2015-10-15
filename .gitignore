@@ -3,6 +3,8 @@ bld*
 *~
 *.swp
 *.pyc
+*.save
+*.save1
 util/generated/
 util/matrices/generated/
 bindings/python/build
