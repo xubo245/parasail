@@ -23,11 +23,14 @@ parasail_result_t* ENAME(
         const char * const restrict _s2, const int s2Len,
         const int open, const int gap, const parasail_matrix_t *matrix)
 {
-    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len);
+    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len, sizeof(int));
     int * const restrict s1 = parasail_memalign_int(16, s1Len);
     int * const restrict s2 = parasail_memalign_int(16, s2Len);
-    int * const restrict tbl_pr = parasail_memalign_int(16, s2Len+1);
-    int * const restrict del_pr = parasail_memalign_int(16, s2Len+1);
+    int * const restrict H = parasail_memalign_int(16, s2Len+1);
+    int * const restrict F = parasail_memalign_int(16, s2Len+1);
+    int * const restrict HT = (int* const restrict)result->trace_table;
+    int * const restrict ET = (int* const restrict)result->trace_ins_table;
+    int * const restrict FT = (int* const restrict)result->trace_del_table;
     int i = 0;
     int j = 0;
     int score = NEG_INF_32;
@@ -42,54 +45,51 @@ parasail_result_t* ENAME(
     }
 
     /* upper left corner */
-    tbl_pr[0] = 0;
-    del_pr[0] = NEG_INF_32;
+    H[0] = 0;
+    F[0] = NEG_INF_32;
     
     /* first row */
     for (j=1; j<=s2Len; ++j) {
-        tbl_pr[j] = 0;
-        del_pr[j] = NEG_INF_32;
+        H[j] = 0;
+        F[j] = NEG_INF_32;
     }
 
     /* iter over first sequence */
     for (i=1; i<s1Len; ++i) {
         const int * const restrict matrow = &matrix->matrix[matrix->size*s1[i-1]];
         /* init first column */
-        int Nscore = tbl_pr[0];
-        int Wscore = 0;
-        int ins_cr = NEG_INF_32;
-        tbl_pr[0] = Wscore;
+        int NH = H[0];
+        int WH = 0;
+        int E = NEG_INF_32;
+        H[0] = WH;
         for (j=1; j<=s2Len; ++j) {
-            int del_tbl;
-            int del_del;
-            int ins_tbl;
-            int ins_ins;
-            int tbl_tbl;
-            int NWscore = Nscore;
-            Nscore = tbl_pr[j];
-            del_tbl = Nscore - open;
-            del_del = del_pr[j] - gap;
-            ins_tbl = Wscore - open;
-            ins_ins = ins_cr    - gap;
-            tbl_tbl = NWscore + matrow[s2[j-1]];
-            del_pr[j] = MAX(del_tbl, del_del);
-            ins_cr    = MAX(ins_tbl, ins_ins);
-            Wscore = MAX(tbl_tbl, del_pr[j]);
-            Wscore = MAX(Wscore, ins_cr);
-            tbl_pr[j] = Wscore;
-            result->trace_del_table[(i-1)*s2Len + (j-1)] = 
-                (del_tbl > del_del) ? PARASAIL_DIAG
-                                    : PARASAIL_DEL;
-            result->trace_ins_table[(i-1)*s2Len + (j-1)] = 
-                (ins_tbl > ins_ins) ? PARASAIL_DIAG
-                                    : PARASAIL_INS;
-            result->trace_table[(i-1)*s2Len + (j-1)] = 
-                (Wscore == tbl_tbl) ? PARASAIL_DIAG
-                    : (Wscore == del_pr[j]) ? PARASAIL_DEL
-                    : PARASAIL_INS;
+            int H_dag;
+            int E_opn;
+            int E_ext;
+            int F_opn;
+            int F_ext;
+            int NWH = NH;
+            NH = H[j];
+            F_opn = NH - open;
+            F_ext = F[j] - gap;
+            F[j] = MAX(F_opn, F_ext);
+            E_opn = WH - open;
+            E_ext = E    - gap;
+            E    = MAX(E_opn, E_ext);
+            H_dag = NWH + matrow[s2[j-1]];
+            WH = MAX(H_dag, E);
+            WH = MAX(WH, F[j]);
+            H[j] = WH;
+            FT[(i-1)*s2Len + (j-1)] = (F_opn > F_ext) ? PARASAIL_DIAG
+                                                      : PARASAIL_DEL;
+            ET[(i-1)*s2Len + (j-1)] = (E_opn > E_ext) ? PARASAIL_DIAG
+                                                      : PARASAIL_INS;
+            HT[(i-1)*s2Len + (j-1)] = (WH == H_dag) ? PARASAIL_DIAG
+                                    : (WH == F[j])  ? PARASAIL_DEL
+                                                    : PARASAIL_INS;
         }
-        if (Wscore > score) {
-            score = Wscore;
+        if (WH > score) {
+            score = WH;
             end_query = i-1;
             end_ref = s2Len-1;
         }
@@ -98,56 +98,55 @@ parasail_result_t* ENAME(
         /* i == s1Len */
         const int * const restrict matrow = &matrix->matrix[matrix->size*s1[i-1]];
         /* init first column */
-        int Nscore = tbl_pr[0];
-        int Wscore = 0;
-        int ins_cr = NEG_INF_32;
-        tbl_pr[0] = Wscore;
+        int NH = H[0];
+        int WH = 0;
+        int E = NEG_INF_32;
+        H[0] = WH;
         for (j=1; j<=s2Len; ++j) {
-            int del_tbl;
-            int del_del;
-            int ins_tbl;
-            int ins_ins;
-            int tbl_tbl;
-            int NWscore = Nscore;
-            Nscore = tbl_pr[j];
-            del_tbl = Nscore - open;
-            del_del = del_pr[j] - gap;
-            ins_tbl = Wscore - open;
-            ins_ins = ins_cr    - gap;
-            tbl_tbl = NWscore + matrow[s2[j-1]];
-            del_pr[j] = MAX(del_tbl, del_del);
-            ins_cr    = MAX(ins_tbl, ins_ins);
-            Wscore = MAX(tbl_tbl, del_pr[j]);
-            Wscore = MAX(Wscore, ins_cr);
-            tbl_pr[j] = Wscore;
-            if (Wscore > score) {
-                score = Wscore;
+            int H_dag;
+            int E_opn;
+            int E_ext;
+            int F_opn;
+            int F_ext;
+            int NWH = NH;
+            NH = H[j];
+            F_opn = NH - open;
+            F_ext = F[j] - gap;
+            F[j] = MAX(F_opn, F_ext);
+            E_opn = WH - open;
+            E_ext = E    - gap;
+            E    = MAX(E_opn, E_ext);
+            H_dag = NWH + matrow[s2[j-1]];
+            WH = MAX(H_dag, E);
+            WH = MAX(WH, F[j]);
+            H[j] = WH;
+            if (WH > score) {
+                score = WH;
                 end_query = s1Len-1;
                 end_ref = j-1;
             }
-            else if (Wscore == score && j-1 < end_ref) {
+            else if (WH == score && j-1 < end_ref) {
                 end_query = s1Len-1;
                 end_ref = j-1;
             }
-            result->trace_del_table[(i-1)*s2Len + (j-1)] = 
-                (del_tbl > del_del) ? PARASAIL_DIAG
-                                    : PARASAIL_DEL;
-            result->trace_ins_table[(i-1)*s2Len + (j-1)] = 
-                (ins_tbl > ins_ins) ? PARASAIL_DIAG
-                                    : PARASAIL_INS;
-            result->trace_table[(i-1)*s2Len + (j-1)] = 
-                (Wscore == tbl_tbl) ? PARASAIL_DIAG
-                    : (Wscore == del_pr[j]) ? PARASAIL_DEL
-                    : PARASAIL_INS;
+            FT[(i-1)*s2Len + (j-1)] = (F_opn > F_ext) ? PARASAIL_DIAG
+                                                      : PARASAIL_DEL;
+            ET[(i-1)*s2Len + (j-1)] = (E_opn > E_ext) ? PARASAIL_DIAG
+                                                      : PARASAIL_INS;
+            HT[(i-1)*s2Len + (j-1)] = (WH == H_dag) ? PARASAIL_DIAG
+                                    : (WH == F[j])  ? PARASAIL_DEL
+                                                    : PARASAIL_INS;
         }
     }
 
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_SG | PARASAIL_FLAG_NOVEC | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_INT | PARASAIL_FLAG_LANES_1;
 
-    parasail_free(del_pr);
-    parasail_free(tbl_pr);
+    parasail_free(F);
+    parasail_free(H);
     parasail_free(s2);
     parasail_free(s1);
 

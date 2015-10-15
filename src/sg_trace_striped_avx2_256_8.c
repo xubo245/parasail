@@ -137,15 +137,13 @@ parasail_result_t* PNAME(
     __m256i vNegInf = _mm256_set1_epi8(NEG_INF);
     int8_t score = NEG_INF;
     __m256i vMaxH = vNegInf;
-    int8_t maxp = INT8_MAX - (int8_t)(matrix->max+1);
     __m256i vPosMask = _mm256_cmpeq_epi8(_mm256_set1_epi8(position),
             _mm256_set_epi8(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31));
     __m256i vNegLimit = _mm256_set1_epi8(INT8_MIN);
     __m256i vPosLimit = _mm256_set1_epi8(INT8_MAX);
     __m256i vSaturationCheckMin = vPosLimit;
     __m256i vSaturationCheckMax = vNegLimit;
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
-    __m256i vTZero = _mm256_set1_epi8(PARASAIL_ZERO);
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len, 1);
     __m256i vTIns  = _mm256_set1_epi8(PARASAIL_INS);
     __m256i vTDel  = _mm256_set1_epi8(PARASAIL_DEL);
     __m256i vTDiag = _mm256_set1_epi8(PARASAIL_DIAG);
@@ -386,6 +384,9 @@ end:
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_SG | PARASAIL_FLAG_STRIPED
+        | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_8 | PARASAIL_FLAG_LANES_32;
 
     parasail_free(pvHT);
     parasail_free(pvEaLoad);

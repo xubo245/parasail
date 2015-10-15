@@ -215,7 +215,7 @@ parasail_result_t* parasail_result_new_table3(const int a, const int b)
     return result;
 }
 
-parasail_result_t* parasail_result_new_trace(const int a, const int b)
+parasail_result_t* parasail_result_new_trace(const int a, const int b, size_t size)
 {
     /* declare all variables */
     parasail_result_t *result = NULL;
@@ -227,11 +227,11 @@ parasail_result_t* parasail_result_new_trace(const int a, const int b)
     /* allocate struct to hold memory */
     result = parasail_result_new();
 
-    result->trace_table = (int *)malloc(sizeof(int)*a*b);
+    result->trace_table = malloc(size*a*b);
     assert(result->trace_table);
-    result->trace_ins_table = (int *)malloc(sizeof(int)*a*b);
+    result->trace_ins_table = malloc(size*a*b);
     assert(result->trace_ins_table);
-    result->trace_del_table = (int *)malloc(sizeof(int)*a*b);
+    result->trace_del_table = malloc(size*a*b);
     assert(result->trace_del_table);
 
     return result;

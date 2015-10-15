@@ -220,6 +220,14 @@ parasail_result_t* FNAME(
     }
 
     result->score = score;
+    result->flag = PARASAIL_FLAG_SW | PARASAIL_FLAG_BLOCKED
+        | PARASAIL_FLAG_BITS_32 | PARASAIL_FLAG_LANES_4;
+#ifdef PARASAIL_TABLE
+    result->flag |= PARASAIL_FLAG_TABLE;
+#endif
+#ifdef PARASAIL_ROWCOL
+    result->flag |= PARASAIL_FLAG_ROWCOL;
+#endif
 
     parasail_free(pvE);
     parasail_free(pvH);

@@ -137,7 +137,7 @@ parasail_result_t* PNAME(
     __m256i vPosLimit = _mm256_set1_epi8(INT8_MAX);
     __m256i vSaturationCheckMin = vPosLimit;
     __m256i vSaturationCheckMax = vNegLimit;
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len, 1);
 
     /* initialize H and E */
     {
@@ -287,6 +287,9 @@ parasail_result_t* PNAME(
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_SG | PARASAIL_FLAG_SCAN
+        | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_8 | PARASAIL_FLAG_LANES_32;
 
     parasail_free(pvH);
     parasail_free(pvHt);

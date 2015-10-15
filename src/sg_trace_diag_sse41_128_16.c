@@ -72,7 +72,7 @@ parasail_result_t* FNAME(
     int16_t * const restrict s2 = s2B+PAD; /* will allow later for negative indices */
     int16_t * const restrict tbl_pr = _tbl_pr+PAD;
     int16_t * const restrict del_pr = _del_pr+PAD;
-    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len);
+    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len, 2);
     int32_t i = 0;
     int32_t j = 0;
     int32_t end_query = 0;
@@ -246,6 +246,9 @@ parasail_result_t* FNAME(
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_SG | PARASAIL_FLAG_DIAG
+        | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_16 | PARASAIL_FLAG_LANES_8;
 
     parasail_free(_del_pr);
     parasail_free(_tbl_pr);

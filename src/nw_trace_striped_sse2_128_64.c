@@ -105,7 +105,7 @@ parasail_result_t* PNAME(
     __m128i vNegInf = _mm_set1_epi64x(NEG_INF);
     int64_t score = NEG_INF;
     
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len, 8);
 
     /* initialize H and E */
     {
@@ -218,6 +218,9 @@ end:
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_NW | PARASAIL_FLAG_STRIPED
+        | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_64 | PARASAIL_FLAG_LANES_2;
 
     parasail_free(boundary);
     parasail_free(pvE);

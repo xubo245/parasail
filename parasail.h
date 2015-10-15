@@ -66,6 +66,34 @@ extern "C" {
 #define PARASAIL_DEL  2
 #define PARASAIL_DIAG 3
 
+/*                                            3         2         1          */
+/*                                           10987654321098765432109876543210*/
+#define PARASAIL_FLAG_NW          (1 << 0) /*00000000000000000000000000000001*/
+#define PARASAIL_FLAG_SG          (1 << 1) /*00000000000000000000000000000010*/
+#define PARASAIL_FLAG_SW          (1 << 2) /*00000000000000000000000000000100*/
+#define PARASAIL_FLAG_NOVEC       (1 << 8) /*00000000000000000000000100000000*/
+#define PARASAIL_FLAG_NOVEC_SCAN  (1 << 9) /*00000000000000000000001000000000*/
+#define PARASAIL_FLAG_SCAN        (1 <<10) /*00000000000000000000010000000000*/
+#define PARASAIL_FLAG_STRIPED     (1 <<11) /*00000000000000000000100000000000*/
+#define PARASAIL_FLAG_DIAG        (1 <<12) /*00000000000000000001000000000000*/
+#define PARASAIL_FLAG_BLOCKED     (1 <<13) /*00000000000000000010000000000000*/
+#define PARASAIL_FLAG_STATS       (1 <<16) /*00000000000000010000000000000000*/
+#define PARASAIL_FLAG_TABLE       (1 <<17) /*00000000000000100000000000000000*/
+#define PARASAIL_FLAG_ROWCOL      (1 <<18) /*00000000000001000000000000000000*/
+#define PARASAIL_FLAG_TRACE       (1 <<19) /*00000000000010000000000000000000*/
+#define PARASAIL_FLAG_BITS_8      (1 <<20) /*00000000000100000000000000000000*/
+#define PARASAIL_FLAG_BITS_16     (1 <<21) /*00000000001000000000000000000000*/
+#define PARASAIL_FLAG_BITS_32     (1 <<22) /*00000000010000000000000000000000*/
+#define PARASAIL_FLAG_BITS_64     (1 <<23) /*00000000100000000000000000000000*/
+#define PARASAIL_FLAG_LANES_1     (1 <<24) /*00000001000000000000000000000000*/
+#define PARASAIL_FLAG_LANES_2     (1 <<25) /*00000010000000000000000000000000*/
+#define PARASAIL_FLAG_LANES_4     (1 <<26) /*00000100000000000000000000000000*/
+#define PARASAIL_FLAG_LANES_8     (1 <<27) /*00001000000000000000000000000000*/
+#define PARASAIL_FLAG_LANES_16    (1 <<28) /*00010000000000000000000000000000*/
+#define PARASAIL_FLAG_LANES_32    (1 <<29) /*00100000000000000000000000000000*/
+#define PARASAIL_FLAG_LANES_64    (1 <<30) /*01000000000000000000000000000000*/
+#define PARASAIL_FLAG_INVALID  0x8000C0F8  /*10000000000000001100000011111000*/
+
 typedef struct parasail_result {
     int saturated;  /* for the 8-bit functions, whether score overflowed and should be discarded */
     int score;      /* alignment score */
@@ -78,9 +106,6 @@ typedef struct parasail_result {
     int * restrict matches_table;   /* DP table of exact match counts */
     int * restrict similar_table;   /* DP table of similar substitution counts */
     int * restrict length_table;    /* DP table of lengths */
-    int * restrict trace_table;     /* DP table of score traceback */
-    int * restrict trace_ins_table; /* DP table of insertions traceback */
-    int * restrict trace_del_table; /* DP table of deletions traceback */
     int * restrict score_row;       /* last row of DP table of scores */
     int * restrict matches_row;     /* last row of DP table of exact match counts */
     int * restrict similar_row;     /* last row of DP table of similar substitution counts */
@@ -89,6 +114,10 @@ typedef struct parasail_result {
     int * restrict matches_col;     /* last col of DP table of exact match counts */
     int * restrict similar_col;     /* last col of DP table of similar substitution counts */
     int * restrict length_col;      /* last col of DP table of lengths */
+    void * restrict trace_table;    /* DP table of score traceback */
+    void * restrict trace_ins_table;/* DP table of insertions traceback */
+    void * restrict trace_del_table;/* DP table of deletions traceback */
+    int flag;                       /* bit field for various flags */
 } parasail_result_t;
 
 typedef struct parasail_matrix {

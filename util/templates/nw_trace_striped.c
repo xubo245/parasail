@@ -71,7 +71,7 @@ parasail_result_t* PNAME(
     %(VTYPE)s vNegInf = %(VSET1)s(NEG_INF);
     %(INT)s score = NEG_INF;
     %(SATURATION_CHECK_INIT)s
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len, %(BYTES)s);
 
     /* initialize H and E */
     {
@@ -184,6 +184,9 @@ end:
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_NW | PARASAIL_FLAG_STRIPED
+        | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_%(WIDTH)s | PARASAIL_FLAG_LANES_%(LANES)s;
 
     parasail_free(boundary);
     parasail_free(pvE);

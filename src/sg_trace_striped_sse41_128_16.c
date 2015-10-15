@@ -89,12 +89,10 @@ parasail_result_t* PNAME(
     __m128i vNegInf = _mm_set1_epi16(NEG_INF);
     int16_t score = NEG_INF;
     __m128i vMaxH = vNegInf;
-    int16_t maxp = INT16_MAX - (int16_t)(matrix->max+1);
     __m128i vPosMask = _mm_cmpeq_epi16(_mm_set1_epi16(position),
             _mm_set_epi16(0,1,2,3,4,5,6,7));
     
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
-    __m128i vTZero = _mm_set1_epi16(PARASAIL_ZERO);
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len, 2);
     __m128i vTIns  = _mm_set1_epi16(PARASAIL_INS);
     __m128i vTDel  = _mm_set1_epi16(PARASAIL_DEL);
     __m128i vTDiag = _mm_set1_epi16(PARASAIL_DIAG);
@@ -320,6 +318,9 @@ end:
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_SG | PARASAIL_FLAG_STRIPED
+        | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_16 | PARASAIL_FLAG_LANES_8;
 
     parasail_free(pvHT);
     parasail_free(pvEaLoad);

@@ -107,7 +107,7 @@ parasail_result_t* PNAME(
             _mm256_set1_epi32(segLenXgap),
             insert_mask);
     
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len, 4);
 
     /* initialize H and E */
     {
@@ -217,6 +217,9 @@ parasail_result_t* PNAME(
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_SW | PARASAIL_FLAG_SCAN
+        | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_32 | PARASAIL_FLAG_LANES_8;
 
     parasail_free(pvHMax);
     parasail_free(pvH);

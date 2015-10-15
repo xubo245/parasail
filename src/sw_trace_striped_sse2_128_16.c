@@ -97,7 +97,7 @@ parasail_result_t* PNAME(
     __m128i vMaxHUnit = vZero;
     int16_t maxp = INT16_MAX - (int16_t)(matrix->max+1);
     /*int16_t stop = profile->stop == INT32_MAX ?  INT16_MAX : (int16_t)profile->stop;*/
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len, 2);
     __m128i vTZero = _mm_set1_epi16(PARASAIL_ZERO);
     __m128i vTIns  = _mm_set1_epi16(PARASAIL_INS);
     __m128i vTDel  = _mm_set1_epi16(PARASAIL_DEL);
@@ -333,6 +333,9 @@ end:
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_SW | PARASAIL_FLAG_STRIPED
+        | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_16 | PARASAIL_FLAG_LANES_8;
 
     parasail_free(pvHMax);
     parasail_free(pvHT);

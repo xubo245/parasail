@@ -323,6 +323,14 @@ parasail_result_t* FNAME(
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_SG | PARASAIL_FLAG_DIAG
+        | PARASAIL_FLAG_BITS_64 | PARASAIL_FLAG_LANES_4;
+#ifdef PARASAIL_TABLE
+    result->flag |= PARASAIL_FLAG_TABLE;
+#endif
+#ifdef PARASAIL_ROWCOL
+    result->flag |= PARASAIL_FLAG_ROWCOL;
+#endif
 
     parasail_free(_del_pr);
     parasail_free(_tbl_pr);

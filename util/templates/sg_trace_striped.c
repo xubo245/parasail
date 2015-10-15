@@ -74,12 +74,10 @@ parasail_result_t* PNAME(
     %(VTYPE)s vNegInf = %(VSET1)s(NEG_INF);
     %(INT)s score = NEG_INF;
     %(VTYPE)s vMaxH = vNegInf;
-    %(INT)s maxp = INT%(WIDTH)s_MAX - (%(INT)s)(matrix->max+1);
     %(VTYPE)s vPosMask = %(VCMPEQ)s(%(VSET1)s(position),
             %(VSET)s(%(POSITION_MASK)s));
     %(SATURATION_CHECK_INIT)s
-    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len);
-    %(VTYPE)s vTZero = %(VSET1)s(PARASAIL_ZERO);
+    parasail_result_t *result = parasail_result_new_trace(segLen*segWidth, s2Len, %(BYTES)s);
     %(VTYPE)s vTIns  = %(VSET1)s(PARASAIL_INS);
     %(VTYPE)s vTDel  = %(VSET1)s(PARASAIL_DEL);
     %(VTYPE)s vTDiag = %(VSET1)s(PARASAIL_DIAG);
@@ -305,6 +303,9 @@ end:
     result->score = score;
     result->end_query = end_query;
     result->end_ref = end_ref;
+    result->flag = PARASAIL_FLAG_SG | PARASAIL_FLAG_STRIPED
+        | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_%(WIDTH)s | PARASAIL_FLAG_LANES_%(LANES)s;
 
     parasail_free(pvHT);
     parasail_free(pvEaLoad);

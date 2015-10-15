@@ -23,11 +23,14 @@ parasail_result_t* ENAME(
         const char * const restrict _s2, const int s2Len,
         const int open, const int gap, const parasail_matrix_t *matrix)
 {
-    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len);
+    parasail_result_t *result = parasail_result_new_trace(s1Len, s2Len, sizeof(int));
     int * const restrict s1 = parasail_memalign_int(16, s1Len);
     int * const restrict s2 = parasail_memalign_int(16, s2Len);
     int * const restrict H = parasail_memalign_int(16, s2Len+1);
     int * const restrict F = parasail_memalign_int(16, s2Len+1);
+    int * const restrict HT = (int* const restrict)result->trace_table;
+    int * const restrict ET = (int* const restrict)result->trace_ins_table;
+    int * const restrict FT = (int* const restrict)result->trace_del_table;
     int i = 0;
     int j = 0;
 
@@ -58,7 +61,6 @@ parasail_result_t* ENAME(
         H[0] = WH;
         for (j=1; j<=s2Len; ++j) {
             int H_dag;
-            int H_new;
             int E_opn;
             int E_ext;
             int F_opn;
@@ -72,26 +74,24 @@ parasail_result_t* ENAME(
             E_ext = E    - gap;
             E    = MAX(E_opn, E_ext);
             H_dag = NWH + matrow[s2[j-1]];
-            H_new = MAX(H_dag, E);
-            H_new = MAX(H_new, F[j]);
-            WH = H_new;
+            WH = MAX(H_dag, E);
+            WH = MAX(WH, F[j]);
             H[j] = WH;
-            result->trace_del_table[(i-1)*s2Len + (j-1)] = 
-                (F_opn > F_ext) ? PARASAIL_DIAG
-                                    : PARASAIL_DEL;
-            result->trace_ins_table[(i-1)*s2Len + (j-1)] = 
-                (E_opn > E_ext) ? PARASAIL_DIAG
-                                    : PARASAIL_INS;
-            result->trace_table[(i-1)*s2Len + (j-1)] = 
-                (WH == H_dag) ? PARASAIL_DIAG
-                    : (WH == F[j]) ? PARASAIL_DEL
-                    : PARASAIL_INS;
+            FT[(i-1)*s2Len + (j-1)] = (F_opn > F_ext) ? PARASAIL_DIAG
+                                                      : PARASAIL_DEL;
+            ET[(i-1)*s2Len + (j-1)] = (E_opn > E_ext) ? PARASAIL_DIAG
+                                                      : PARASAIL_INS;
+            HT[(i-1)*s2Len + (j-1)] = (WH == H_dag) ? PARASAIL_DIAG
+                                    : (WH == F[j])  ? PARASAIL_DEL
+                                                    : PARASAIL_INS;
         }
     }
 
     result->score = H[s2Len];
     result->end_query = s1Len-1;
     result->end_ref = s2Len-1;
+    result->flag = PARASAIL_FLAG_NW | PARASAIL_FLAG_NOVEC | PARASAIL_FLAG_TRACE
+        | PARASAIL_FLAG_BITS_INT | PARASAIL_FLAG_LANES_1;
 
     parasail_free(F);
     parasail_free(H);
