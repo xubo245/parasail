@@ -96,6 +96,7 @@ nobase_include_HEADERS += parasail/matrices/pam_map.h
 
 AM_CPPFLAGS += -I$(top_srcdir)/contrib
 AM_CPPFLAGS += -I$(top_srcdir)/contrib/sais-lite-lcp
+AM_CPPFLAGS += -I$(top_srcdir)/src
 
 noinst_LTLIBRARIES += libparasail_novec.la
 noinst_LTLIBRARIES += libparasail_novec_table.la
@@ -161,6 +162,7 @@ SRC_CORE += src/sg_dispatch.c
 SRC_CORE += src/sw_dispatch.c
 SRC_CORE += src/dispatch_profile.c
 SRC_CORE += src/satcheck.c
+SRC_CORE += src/traceback.c
 SRC_CORE += parasail/memory.h
 SRC_CORE += parasail/stats.h
 
