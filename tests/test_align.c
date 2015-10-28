@@ -42,13 +42,22 @@ static const char *get_user_name()
 
 static void print_array(
         const char * filename_,
-        const int * const restrict array,
+        parasail_result_t *result,
+        int * array_,
         const char * const restrict s1, const int s1Len,
         const char * const restrict s2, const int s2Len)
 {
     int i;
     int j;
     FILE *f = NULL;
+    int *array = NULL;
+    if ((result->flag & PARASAIL_FLAG_TRACE)
+            && (result->flag & PARASAIL_FLAG_STRIPED)) {
+        array = parasail_striped_unwind(s1Len, s2Len, result, (void*)array_);
+    }
+    else {
+        array = array_;
+    }
 #ifdef __MIC__
     const char *username = get_user_name();
     char filename[4096] = {0};
@@ -79,6 +88,10 @@ static void print_array(
         fprintf(f, "\n");
     }
     fclose(f);
+    if ((result->flag & PARASAIL_FLAG_TRACE)
+            && (result->flag & PARASAIL_FLAG_STRIPED)) {
+        free(array);
+    }
 }
 
 static void print_rowcol(
@@ -549,28 +562,28 @@ int main(int argc, char **argv)
                 strcpy(filename, f.alg);
                 strcat(filename, "_scr");
                 strcat(filename, suffix);
-                print_array(filename, result->score_table, seqA, lena, seqB, lenb);
+                print_array(filename, result, result->score_table, seqA, lena, seqB, lenb);
             }
             if (f.is_stats) {
                 char filename[256] = {'\0'};
                 strcpy(filename, f.alg);
                 strcat(filename, "_mch");
                 strcat(filename, suffix);
-                print_array(filename, result->matches_table, seqA, lena, seqB, lenb);
+                print_array(filename, result, result->matches_table, seqA, lena, seqB, lenb);
             }
             if (f.is_stats) {
                 char filename[256] = {'\0'};
                 strcpy(filename, f.alg);
                 strcat(filename, "_sim");
                 strcat(filename, suffix);
-                print_array(filename, result->similar_table, seqA, lena, seqB, lenb);
+                print_array(filename, result, result->similar_table, seqA, lena, seqB, lenb);
             }
             if (f.is_stats) {
                 char filename[256] = {'\0'};
                 strcpy(filename, f.alg);
                 strcat(filename, "_len");
                 strcat(filename, suffix);
-                print_array(filename, result->length_table, seqA, lena, seqB, lenb);
+                print_array(filename, result, result->length_table, seqA, lena, seqB, lenb);
             }
             parasail_result_free(result);
         }
@@ -649,21 +662,21 @@ int main(int argc, char **argv)
                 strcpy(filename, f.alg);
                 strcat(filename, "_trace_tbl");
                 strcat(filename, suffix);
-                print_array(filename, result->trace_table, seqA, lena, seqB, lenb);
+                print_array(filename, result, result->trace_table, seqA, lena, seqB, lenb);
             }
             {
                 char filename[256] = {'\0'};
                 strcpy(filename, f.alg);
                 strcat(filename, "_trace_ins");
                 strcat(filename, suffix);
-                print_array(filename, result->trace_ins_table, seqA, lena, seqB, lenb);
+                print_array(filename, result, result->trace_ins_table, seqA, lena, seqB, lenb);
             }
             {
                 char filename[256] = {'\0'};
                 strcpy(filename, f.alg);
                 strcat(filename, "_trace_del");
                 strcat(filename, suffix);
-                print_array(filename, result->trace_del_table, seqA, lena, seqB, lenb);
+                print_array(filename, result, result->trace_del_table, seqA, lena, seqB, lenb);
             }
             parasail_result_free(result);
         }

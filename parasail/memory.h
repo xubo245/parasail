@@ -54,6 +54,12 @@ extern PARASAIL_LOCAL char* parasail_reverse(const char *s, int end);
 #define PARASAIL_FLAG_BITS_INT PARASAIL_FLAG_BITS_64
 #endif
 
+extern PARASAIL_LOCAL int* parasail_striped_unwind(
+        int lena,
+        int lenb,
+        parasail_result_t *result,
+        void *array);
+
 #ifdef __cplusplus
 }
 #endif

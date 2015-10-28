@@ -186,7 +186,8 @@ am__dirstamp = $(am__leading_dot)dirstamp
 am__objects_1 = src/cpuid.lo src/function_lookup.lo src/io.lo \
 	src/matrix_lookup.lo src/memory.lo src/time.lo \
 	src/nw_dispatch.lo src/sg_dispatch.lo src/sw_dispatch.lo \
-	src/dispatch_profile.lo src/satcheck.lo src/traceback.lo
+	src/dispatch_profile.lo src/satcheck.lo src/striped_unwind.lo \
+	src/traceback.lo
 am_libparasail_la_OBJECTS = $(am__objects_1)
 libparasail_la_OBJECTS = $(am_libparasail_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -1797,8 +1798,8 @@ EXTRA_DIST = version.sh DISCLAIMER README.md \
 SRC_CORE = src/cpuid.c src/function_lookup.c src/io.c \
 	src/matrix_lookup.c src/memory.c src/time.c src/nw_dispatch.c \
 	src/sg_dispatch.c src/sw_dispatch.c src/dispatch_profile.c \
-	src/satcheck.c src/traceback.c parasail/memory.h \
-	parasail/stats.h
+	src/satcheck.c src/striped_unwind.c src/traceback.c \
+	parasail/memory.h parasail/stats.h
 
 #################
 # vector memory
@@ -2394,6 +2395,8 @@ src/sw_dispatch.lo: src/$(am__dirstamp) src/$(DEPDIR)/$(am__dirstamp)
 src/dispatch_profile.lo: src/$(am__dirstamp) \
 	src/$(DEPDIR)/$(am__dirstamp)
 src/satcheck.lo: src/$(am__dirstamp) src/$(DEPDIR)/$(am__dirstamp)
+src/striped_unwind.lo: src/$(am__dirstamp) \
+	src/$(DEPDIR)/$(am__dirstamp)
 src/traceback.lo: src/$(am__dirstamp) src/$(DEPDIR)/$(am__dirstamp)
 
 libparasail.la: $(libparasail_la_OBJECTS) $(libparasail_la_DEPENDENCIES) $(EXTRA_libparasail_la_DEPENDENCIES) 
@@ -5279,6 +5282,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/nw_dispatch.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/satcheck.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/sg_dispatch.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/striped_unwind.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/sw_dispatch.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/time.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/traceback.Plo@am__quote@

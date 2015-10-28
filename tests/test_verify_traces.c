@@ -131,12 +131,25 @@ static inline int diff_array(
         unsigned long s1Len,
         unsigned long s2Len,
         int *a,
-        int *b)
+        int *b_,
+        parasail_result_t *result)
 {
     unsigned long i = 0;
     unsigned long size = s1Len * s2Len;
+    int *b = NULL;
+    if ((result->flag & PARASAIL_FLAG_TRACE)
+            && (result->flag & PARASAIL_FLAG_STRIPED)) {
+        b = parasail_striped_unwind(s1Len, s2Len, result, b_);
+    }
+    else {
+        b = b_;
+    }
     for (i=0; i<size; ++i) {
         if (a[i] != b[i]) return 1;
+    }
+    if ((result->flag & PARASAIL_FLAG_TRACE)
+            && (result->flag & PARASAIL_FLAG_STRIPED)) {
+        free(b);
     }
     return 0;
 }
@@ -223,7 +236,7 @@ static void check_functions(
                     if (diff_array(
                                 sizes[a], sizes[b],
                                 reference_result->trace_table,
-                                result->trace_table)) {
+                                result->trace_table, result)) {
 #pragma omp critical(printer)
                         {
                             printf("%s(%lu,%lu,%d,%d,%s) bad trace table\n",
@@ -235,7 +248,7 @@ static void check_functions(
                     if (diff_array(
                                 sizes[a], sizes[b],
                                 reference_result->trace_ins_table,
-                                result->trace_ins_table)) {
+                                result->trace_ins_table, result)) {
 #pragma omp critical(printer)
                         {
                             printf("%s(%lu,%lu,%d,%d,%s) bad ins trace table\n",
@@ -247,7 +260,7 @@ static void check_functions(
                     if (diff_array(
                                 sizes[a], sizes[b],
                                 reference_result->trace_del_table,
-                                result->trace_del_table)) {
+                                result->trace_del_table, result)) {
 #pragma omp critical(printer)
                         {
                             printf("%s(%lu,%lu,%d,%d,%s) bad del trace table\n",
