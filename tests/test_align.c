@@ -262,7 +262,7 @@ int main(int argc, char **argv)
     int do_sg = 1;
     int do_sw = 1;
 
-    while ((c = getopt(argc, argv, "a:b:f:i:m:n:o:e:rRTNSs")) != -1) {
+    while ((c = getopt(argc, argv, "a:b:f:i:m:n:o:e:rRTNSsB")) != -1) {
         switch (c) {
             case 'a':
                 errno = 0;
@@ -333,13 +333,13 @@ int main(int argc, char **argv)
                 do_nonstats = 0;
                 break;
             case 'i':
-                do_sse2 = (NULL == strcasestr(optarg, "sse2"));
-                do_sse41 = (NULL == strcasestr(optarg, "sse41"));
-                do_avx2 = (NULL == strcasestr(optarg, "avx2"));
-                do_disp = (NULL == strcasestr(optarg, "disp"));
-                do_nw = (NULL == strcasestr(optarg, "nw"));
-                do_sg = (NULL == strcasestr(optarg, "sg"));
-                do_sw = (NULL == strcasestr(optarg, "sw"));
+                do_sse2 = (NULL == strstr(optarg, "sse2"));
+                do_sse41 = (NULL == strstr(optarg, "sse41"));
+                do_avx2 = (NULL == strstr(optarg, "avx2"));
+                do_disp = (NULL == strstr(optarg, "disp"));
+                do_nw = (NULL == strstr(optarg, "nw"));
+                do_sg = (NULL == strstr(optarg, "sg"));
+                do_sw = (NULL == strstr(optarg, "sw"));
                 break;
             case '?':
                 if (optopt == 'a'
